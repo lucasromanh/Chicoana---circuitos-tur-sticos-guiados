@@ -1,0 +1,7 @@
+{
+  "name": "Chicoana Turismo",
+  "description": "Aplicación de circuitos turísticos guiados offline-first para Chicoana, Salta.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

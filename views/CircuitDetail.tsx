@@ -45,8 +45,16 @@ const CircuitDetail: React.FC = () => {
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-56">
       {/* Header Image */}
-      <div className="relative h-72">
-        <img src={circuit.image} alt={circuit.title} className="w-full h-full object-cover" />
+      <div className="relative h-72 bg-gray-200 dark:bg-gray-800">
+        <img 
+          src={circuit.image} 
+          alt={circuit.title} 
+          className="w-full h-full object-cover" 
+          onError={(e) => {
+             e.currentTarget.onerror = null; 
+             e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=800";
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-background-light dark:to-background-dark"></div>
         
         {/* Navigation Bar */}
@@ -139,7 +147,15 @@ const CircuitDetail: React.FC = () => {
                 {/* Content */}
                 <div className="flex-1 bg-white dark:bg-surface-dark p-3 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm active:scale-[0.99] transition-transform">
                   <div className="flex gap-3">
-                    <img src={poi.image} alt={poi.title} className="w-16 h-16 rounded-lg object-cover" />
+                    <img 
+                      src={poi.image} 
+                      alt={poi.title} 
+                      className="w-16 h-16 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" 
+                      onError={(e) => {
+                         e.currentTarget.onerror = null; 
+                         e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=200";
+                      }}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <h3 className="font-bold text-sm text-text-main dark:text-white truncate pr-2">{poi.title}</h3>

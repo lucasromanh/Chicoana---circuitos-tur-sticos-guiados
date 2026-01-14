@@ -36,6 +36,8 @@ export interface DownloadItem {
   version: string;
   image: string;
   type: 'circuit' | 'guide' | 'map';
+  description?: string;
+  icon?: string;
 }
 
 export type LanguageCode = 'es' | 'en' | 'pt' | 'de' | 'it' | 'fr' | 'zh' | 'ja';

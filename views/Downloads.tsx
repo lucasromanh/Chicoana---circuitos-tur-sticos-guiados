@@ -177,8 +177,16 @@ const Downloads: React.FC = () => {
                  
                  {/* Si es un circuito con imagen */}
                  {item.type === 'circuit' && item.image ? (
-                   <div className="relative h-32 w-full rounded-2xl overflow-hidden mb-3 group">
-                      <img src={item.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={item.title} />
+                   <div className="relative h-32 w-full rounded-2xl overflow-hidden mb-3 group bg-gray-100 dark:bg-gray-800">
+                      <img 
+                        src={item.image} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        alt={item.title} 
+                        onError={(e) => {
+                             e.currentTarget.onerror = null; 
+                             e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=800";
+                        }}
+                      />
                       {updateAvailable && !isUpdating && (
                         <div className="absolute top-3 right-3 bg-[#fcefb4] text-orange-800 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
                            <span className="material-symbols-outlined text-xs">update</span> {t('downloads.version_update')} v1.2
@@ -269,7 +277,15 @@ const Downloads: React.FC = () => {
                    <div className="flex items-center gap-4 min-w-0">
                       <div className="w-12 h-12 bg-[#f0f9ff] dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
                          {item.type === 'circuit' && item.image ? (
-                            <img src={item.image} alt="" className="w-full h-full object-cover rounded-xl opacity-80" />
+                            <img 
+                              src={item.image} 
+                              alt="" 
+                              className="w-full h-full object-cover rounded-xl opacity-80" 
+                              onError={(e) => {
+                                 e.currentTarget.onerror = null; 
+                                 e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=200";
+                              }}
+                            />
                          ) : (
                             <span className="material-symbols-outlined">{item.icon}</span>
                          )}

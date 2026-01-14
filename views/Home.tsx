@@ -166,8 +166,16 @@ const Home: React.FC = () => {
                 onClick={() => navigate(`/circuit/${circuit.id}`)}
                 className="group bg-white dark:bg-surface-dark rounded-[2rem] p-3 shadow-sm border border-gray-100 dark:border-gray-800 active:scale-[0.98] transition-all duration-300"
               >
-                <div className="aspect-[4/3] relative rounded-[1.5rem] overflow-hidden mb-3">
-                  <img src={circuit.image} alt={circuit.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div className="aspect-[4/3] relative rounded-[1.5rem] overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
+                  <img 
+                    src={circuit.image} 
+                    alt={circuit.title} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                    onError={(e) => {
+                      e.currentTarget.onerror = null; 
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=800";
+                    }}
+                  />
                   
                   {/* Favorite Button */}
                   <div className="absolute top-3 right-3">

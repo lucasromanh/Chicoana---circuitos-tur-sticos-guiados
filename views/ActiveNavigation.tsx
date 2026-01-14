@@ -64,23 +64,23 @@ const ActiveNavigation: React.FC = () => {
     if (mapReady && mapContainerRef.current && !mapInstanceRef.current) {
         const L = window.L;
         
-        // Inicializar mapa centrado
+        // Inicializar mapa centrado (Zoom 18 en lugar de 19 para ver mejor el contexto)
         const map = L.map(mapContainerRef.current, {
             zoomControl: false,
             attributionControl: false,
             zoomAnimation: true
-        }).setView([userLocation.lat, userLocation.lng], 19);
+        }).setView([userLocation.lat, userLocation.lng], 18);
 
         // Capa OSM
-        // Si el mapa está "descargado", simulamos usando la misma layer (en app real usaría tile local)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
         }).addTo(map);
 
-        // Detectar interacción del usuario para desactivar seguimiento automático
+        // === FIX: DETECTAR INTERACCIÓN PARA PARAR EL AUTO-CENTRADO ===
         map.on('dragstart', () => {
             setIsFollowing(false);
         });
+        // =============================================================
 
         // Icono de Navegación (Flecha)
         const navIcon = L.divIcon({
@@ -121,8 +121,13 @@ const ActiveNavigation: React.FC = () => {
         if (route) {
             setActiveRoute(route);
             const latLngs = route.path.map(p => [p.lat, p.lng]);
-            L.polyline(latLngs, { color: '#1a5f7a', weight: 10, opacity: 0.5 }).addTo(map);
+            // Sombra de ruta
+            L.polyline(latLngs, { color: '#1a5f7a', weight: 10, opacity: 0.3 }).addTo(map);
+            // Ruta principal
             routeLayerRef.current = L.polyline(latLngs, { color: '#3b82f6', weight: 7, opacity: 0.9 }).addTo(map);
+            
+            // Ajustar vista inicial para ver parte del recorrido
+            // map.fitBounds(routeLayerRef.current.getBounds(), { padding: [50, 50] });
         }
     }
   }, [mapReady]);
@@ -142,16 +147,17 @@ const ActiveNavigation: React.FC = () => {
         }
 
         const currentPos = path[currentIndex];
-        
         const newLatLng = new L.LatLng(currentPos.lat, currentPos.lng);
         
-        // Mover marcador
+        // Mover marcador (siempre se mueve)
         markerRef.current.setLatLng(newLatLng);
 
-        // Solo mover la cámara si el modo seguimiento está activo
+        // === FIX: SOLO MOVER CÁMARA SI ESTÁ EN MODO SEGUIMIENTO ===
         if (isFollowing) {
+            // Usar panTo con duración para suavizar el movimiento "loco"
             mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 0.8 });
         }
+        // ===========================================================
 
         setDistance(prev => Math.max(0, prev - 2));
         currentIndex++;
@@ -164,7 +170,7 @@ const ActiveNavigation: React.FC = () => {
     if (mapInstanceRef.current && markerRef.current) {
         setIsFollowing(true);
         const latLng = markerRef.current.getLatLng();
-        mapInstanceRef.current.flyTo(latLng, 19, { animate: true });
+        mapInstanceRef.current.flyTo(latLng, 18, { animate: true });
     }
   };
 
@@ -196,6 +202,7 @@ const ActiveNavigation: React.FC = () => {
                <p className="text-[10px] text-gray-500 font-medium truncate">15 {t('navigation.min_left')} • 1.2 {t('circuit.distance')}</p>
             </div>
             
+            {/* Botón de Descarga de Mapa Offline */}
             {!isMapDownloaded ? (
                 <button 
                   onClick={handleDownloadMap}
@@ -228,7 +235,7 @@ const ActiveNavigation: React.FC = () => {
       <div className="absolute right-3 top-36 flex flex-col gap-2 z-20">
          <button 
             onClick={handleRecenter}
-            className={`w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700 ${isFollowing ? 'bg-primary text-black' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-white'}`}
+            className={`w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700 ${isFollowing ? 'bg-primary text-black ring-2 ring-primary/50' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-white'}`}
          >
             <span className="material-symbols-outlined text-xl">my_location</span>
          </button>

@@ -22,6 +22,7 @@ const PoiDetail: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showShareToast, setShowShareToast] = useState(false); // Estado para feedback visual
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Derive offline state based on circuit download
@@ -78,14 +79,83 @@ const PoiDetail: React.FC = () => {
       setIsVideoPlaying(true);
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      e.currentTarget.onerror = null; 
+      e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=800";
+  };
+
+  // --- LÓGICA DE COMPARTIR MULTIPLATAFORMA ---
+  const handleShare = async () => {
+    if (!poi) return;
+
+    const currentUrl = window.location.href;
+    const shareData = {
+      title: `Chicoana Turismo: ${poi.title}`,
+      text: `Descubre ${poi.title} en Chicoana. ${poi.description?.substring(0, 100)}...`,
+      url: currentUrl,
+    };
+
+    const doFallback = async () => {
+        try {
+           await navigator.clipboard.writeText(currentUrl);
+           setShowShareToast(true);
+           setTimeout(() => setShowShareToast(false), 2500);
+        } catch (e) {
+            console.error('Fallback clipboard failed', e);
+        }
+    };
+
+    try {
+      // 1. Validar soporte de API nativa
+      if (navigator.share) {
+         // Validar datos si canShare está disponible (nivel extra de seguridad)
+         if (navigator.canShare && !navigator.canShare(shareData)) {
+            // Si falla validación completa, intentar solo URL y Título
+            const simpleData = { title: shareData.title, url: shareData.url };
+            if (navigator.canShare(simpleData)) {
+                await navigator.share(simpleData);
+                return;
+            }
+            throw new Error('Data not sharable');
+         }
+         
+         // Intentar compartir
+         await navigator.share(shareData);
+      } else {
+        throw new Error('Web Share API not supported');
+      }
+    } catch (err: any) {
+      // 2. Manejo de Errores
+      // Si el usuario cancela (AbortError), no hacemos nada
+      if (err.name === 'AbortError') return;
+
+      console.warn('Share falló, usando fallback:', err);
+      // Para cualquier otro error (Invalid URL, NotAllowed, etc), usamos fallback
+      await doFallback();
+    }
+  };
+
   if (!poi) return <div className="p-8">POI no encontrado</div>;
 
   return (
     <div className="bg-white dark:bg-background-dark min-h-screen pb-32 relative">
       
+      {/* Toast Notification para Copiar (Fallback) */}
+      {showShareToast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-black/90 text-white px-6 py-3 rounded-full shadow-2xl z-[60] flex items-center gap-3 animate-fade-in-up backdrop-blur-md">
+           <span className="material-symbols-outlined text-green-400">link</span>
+           <span className="text-xs font-bold">¡Enlace copiado al portapapeles!</span>
+        </div>
+      )}
+
       {/* 1. Header Image & Nav */}
-      <div className="relative h-72">
-         <img src={poi.image} alt={poi.title} className="w-full h-full object-cover" />
+      <div className="relative h-72 bg-gray-200 dark:bg-gray-800">
+         <img 
+            src={poi.image} 
+            alt={poi.title} 
+            className="w-full h-full object-cover" 
+            onError={handleImageError}
+         />
          
          <div className="absolute top-0 left-0 w-full p-4 pt-safe-top flex justify-between items-center z-20">
              <button 
@@ -94,7 +164,10 @@ const PoiDetail: React.FC = () => {
              >
                 <span className="material-symbols-outlined">arrow_back</span>
              </button>
+             
+             {/* BOTÓN COMPARTIR CONECTADO */}
              <button 
+               onClick={handleShare}
                className="w-10 h-10 bg-white/30 backdrop-blur-md rounded-full text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform"
              >
                 <span className="material-symbols-outlined">share</span>
@@ -181,11 +254,19 @@ const PoiDetail: React.FC = () => {
              {t('poi.gallery')}
            </h3>
            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5 snap-x">
-              {/* Imagen principal repetida para efecto */}
-              <img src={poi.image} className="w-48 h-32 object-cover rounded-2xl shrink-0 snap-start shadow-sm" alt="Vista 1" />
-              {/* Placeholders temáticos */}
-              <img src="https://images.unsplash.com/photo-1518182170546-0766ce6fec56?auto=format&fit=crop&q=80&w=400" className="w-48 h-32 object-cover rounded-2xl shrink-0 snap-start shadow-sm" alt="Detalle Arquitectónico" />
-              <img src="https://images.unsplash.com/photo-1621371726055-6c7030800b63?auto=format&fit=crop&q=80&w=400" className="w-48 h-32 object-cover rounded-2xl shrink-0 snap-start shadow-sm" alt="Entorno Natural" />
+              {/* Image 1: POI Image */}
+              <img src={poi.image} className="w-48 h-32 object-cover rounded-2xl shrink-0 snap-start shadow-sm bg-gray-100" alt="Vista Principal" onError={handleImageError} />
+              
+              {/* Image 2: Video Thumbnail (if avail) or fallback logic to avoid broken image */}
+              <img 
+                 src={poi.videoThumbnail || poi.image} 
+                 className="w-48 h-32 object-cover rounded-2xl shrink-0 snap-start shadow-sm bg-gray-100" 
+                 alt="Detalle" 
+                 onError={handleImageError} 
+              />
+              
+              {/* Image 3: General Fallback */}
+              <img src="https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=400" className="w-48 h-32 object-cover rounded-2xl shrink-0 snap-start shadow-sm bg-gray-100" alt="Ambiente" onError={handleImageError} />
            </div>
         </div>
 
@@ -198,9 +279,9 @@ const PoiDetail: React.FC = () => {
                  </h3>
                  <div 
                    onClick={handleVideoPlay}
-                   className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group cursor-pointer"
+                   className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group cursor-pointer bg-gray-100 dark:bg-gray-800"
                  >
-                     <img src={poi.videoThumbnail} alt="Video Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                     <img src={poi.videoThumbnail} alt="Video Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onError={handleImageError} />
                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors"></div>
                      
                      {/* Offline Badge */}
@@ -227,7 +308,7 @@ const PoiDetail: React.FC = () => {
                          <p className="text-xs font-bold">Tour Virtual 360°</p>
                      </div>
                      
-                     {/* Real Video Player */}
+                     {/* Real Video Player Overlay */}
                      {isVideoPlaying && poi.videoUrl && (
                         <div className="absolute inset-0 bg-black z-50 flex items-center justify-center animate-fade-in-up">
                             <video 
@@ -236,11 +317,11 @@ const PoiDetail: React.FC = () => {
                                 controls 
                                 autoPlay 
                                 playsInline
-                                onClick={(e) => e.stopPropagation()} // Evitar que click en video cierre o dispare eventos padre
+                                onClick={(e) => e.stopPropagation()} 
                             />
                             <button 
                                 onClick={(e) => { e.stopPropagation(); setIsVideoPlaying(false); }}
-                                className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 backdrop-blur-md hover:bg-black/70 transition-colors"
+                                className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 backdrop-blur-md hover:bg-black/70 transition-colors z-50"
                             >
                                 <span className="material-symbols-outlined text-lg">close</span>
                             </button>

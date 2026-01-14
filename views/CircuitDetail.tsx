@@ -1,16 +1,49 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CIRCUITS } from '../constants';
+import { useUser } from '../contexts/UserContext';
 
 const CircuitDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const circuit = CIRCUITS.find(c => c.id === id);
+  // USAR circuitos localizados del contexto
+  const { favorites, toggleFavorite, downloadedCircuits, simulateDownload, visitedPois, t, circuits } = useUser();
+  const [isDownloading, setIsDownloading] = useState(false);
+  
+  const circuit = circuits.find(c => c.id === id);
 
   if (!circuit) return <div className="p-8 text-center">Circuito no encontrado</div>;
 
+  const isFav = favorites.includes(circuit.id);
+  const isDownloaded = downloadedCircuits.includes(circuit.id);
+
+  const handleDownload = async () => {
+    if (isDownloaded) return;
+    setIsDownloading(true);
+    await simulateDownload(circuit.id);
+    setIsDownloading(false);
+  };
+
+  const handleStartCircuit = async () => {
+    if (!isDownloaded) {
+      setIsDownloading(true);
+      await simulateDownload(circuit.id);
+      setIsDownloading(false);
+    }
+    
+    if (circuit.pois && circuit.pois.length > 0) {
+      navigate(`/poi/${circuit.pois[0].id}`);
+    } else {
+      navigate('/navigation', { state: { circuitId: circuit.id } });
+    }
+  };
+
+  const handleOpenMap = () => {
+      navigate('/navigation', { state: { circuitId: circuit.id } });
+  }
+
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-56">
       {/* Header Image */}
       <div className="relative h-72">
         <img src={circuit.image} alt={circuit.title} className="w-full h-full object-cover" />
@@ -21,8 +54,13 @@ const CircuitDetail: React.FC = () => {
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-           <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 transition">
-            <span className="material-symbols-outlined">favorite</span>
+           <button 
+             onClick={() => toggleFavorite(circuit.id)}
+             className={`w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all shadow-sm ${
+               isFav ? 'bg-red-500 text-white border-none' : 'bg-white/20 text-white hover:bg-white/30 border border-white/20'
+             }`}
+           >
+            <span className={`material-symbols-outlined ${isFav ? 'filled' : ''}`}>favorite</span>
           </button>
         </div>
 
@@ -32,8 +70,8 @@ const CircuitDetail: React.FC = () => {
           </span>
           <h1 className="text-3xl font-bold text-text-main dark:text-white leading-tight mb-1">{circuit.title}</h1>
           <div className="flex items-center gap-4 text-sm text-gray-200 font-medium">
-            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-base">straighten</span> {circuit.distance}</span>
-            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-base">schedule</span> {circuit.duration}</span>
+            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-base">straighten</span> {circuit.distance} {t('circuit.distance')}</span>
+            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-base">schedule</span> {circuit.duration} {t('circuit.duration')}</span>
           </div>
         </div>
       </div>
@@ -47,76 +85,107 @@ const CircuitDetail: React.FC = () => {
         {/* Offline Status Card */}
         <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-gray-800 rounded-2xl p-4 mb-8 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${circuit.isDownloaded ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-               <span className="material-symbols-outlined">{circuit.isDownloaded ? 'check_circle' : 'cloud_download'}</span>
+             <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isDownloaded ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+               {isDownloading ? (
+                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+               ) : (
+                  <span className="material-symbols-outlined">{isDownloaded ? 'check_circle' : 'cloud_download'}</span>
+               )}
              </div>
              <div>
                <p className="text-sm font-bold text-text-main dark:text-white">
-                 {circuit.isDownloaded ? 'Disponible Offline' : 'Descargar Circuito'}
+                 {isDownloaded ? t('circuit.available_offline') : isDownloading ? t('circuit.downloading') : t('circuit.download')}
                </p>
                <p className="text-xs text-gray-500">
-                 {circuit.isDownloaded ? 'Listo para navegar sin datos' : `Tamaño estimado: ${circuit.downloadSize}`}
+                 {isDownloaded ? t('circuit.ready') : `${circuit.downloadSize}`}
                </p>
              </div>
           </div>
-          {!circuit.isDownloaded && (
-            <button className="px-4 py-2 bg-text-main dark:bg-white text-white dark:text-black text-xs font-bold rounded-full">
-              Descargar
+          {!isDownloaded && !isDownloading && (
+            <button 
+              onClick={handleDownload}
+              className="px-4 py-2 bg-text-main dark:bg-white text-white dark:text-black text-xs font-bold rounded-full active:scale-95 transition-transform"
+            >
+              {t('circuit.download')}
             </button>
           )}
         </div>
 
         {/* POI Timeline */}
-        <h2 className="text-lg font-bold mb-4 px-2 dark:text-white">Puntos de Interés</h2>
+        <h2 className="text-lg font-bold mb-4 px-2 dark:text-white">{t('circuit.pois')}</h2>
         <div className="relative pl-4 space-y-8 before:content-[''] before:absolute before:left-[27px] before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-200 dark:before:bg-gray-700">
-          {circuit.pois && circuit.pois.length > 0 ? circuit.pois.map((poi, index) => (
-            <div 
-              key={poi.id} 
-              onClick={() => navigate(`/poi/${poi.id}`)}
-              className="relative flex gap-4 cursor-pointer group"
-            >
-              {/* Timeline Node */}
-              <div className="relative z-10 w-7 h-7 rounded-full bg-primary border-4 border-background-light dark:border-background-dark flex items-center justify-center shadow-sm shrink-0">
-                <span className="text-[10px] font-bold text-black">{index + 1}</span>
-              </div>
-              
-              {/* Content */}
-              <div className="flex-1 bg-white dark:bg-surface-dark p-3 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm active:scale-[0.99] transition-transform">
-                <div className="flex gap-3">
-                  <img src={poi.image} alt={poi.title} className="w-16 h-16 rounded-lg object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-sm text-text-main dark:text-white truncate pr-2">{poi.title}</h3>
-                      <span className="text-[10px] text-gray-400 whitespace-nowrap">{poi.distanceFromStart}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{poi.description}</p>
-                    {poi.audioDuration && (
-                      <div className="flex items-center gap-1 mt-2 text-primary-dark dark:text-primary">
-                        <span className="material-symbols-outlined text-sm">headphones</span>
-                        <span className="text-[10px] font-bold">Audio guia • {poi.audioDuration}</span>
+          {circuit.pois && circuit.pois.length > 0 ? circuit.pois.map((poi, index) => {
+            const isVisited = visitedPois.includes(poi.id);
+            // Formatear distancia para soportar traducción
+            const distDisplay = poi.distanceFromStart.includes('Inicio') 
+                ? `0.0 km (${t('circuit.start_point')})` 
+                : poi.distanceFromStart;
+
+            return (
+              <div 
+                key={poi.id} 
+                onClick={() => navigate(`/poi/${poi.id}`)}
+                className={`relative flex gap-4 cursor-pointer group transition-all duration-300 ${isVisited ? 'opacity-60 grayscale-[0.8] hover:opacity-100 hover:grayscale-0' : ''}`}
+              >
+                {/* Timeline Node */}
+                <div className={`relative z-10 w-7 h-7 rounded-full border-4 border-background-light dark:border-background-dark flex items-center justify-center shadow-sm shrink-0 transition-colors ${isVisited ? 'bg-green-500' : 'bg-primary'}`}>
+                  {isVisited ? (
+                    <span className="material-symbols-outlined text-white text-[14px] font-bold">check</span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-black">{index + 1}</span>
+                  )}
+                </div>
+                
+                {/* Content */}
+                <div className="flex-1 bg-white dark:bg-surface-dark p-3 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm active:scale-[0.99] transition-transform">
+                  <div className="flex gap-3">
+                    <img src={poi.image} alt={poi.title} className="w-16 h-16 rounded-lg object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-sm text-text-main dark:text-white truncate pr-2">{poi.title}</h3>
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap">{distDisplay}</span>
                       </div>
-                    )}
+                      <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{poi.description}</p>
+                      
+                      <div className="flex items-center justify-between mt-2">
+                        {poi.audioDuration && (
+                          <div className="flex items-center gap-1 text-primary-dark dark:text-primary">
+                            <span className="material-symbols-outlined text-sm">headphones</span>
+                            <span className="text-[10px] font-bold">{t('circuit.audio_label')} • {poi.audioDuration}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )) : (
+            );
+          }) : (
             <div className="pl-8 text-sm text-gray-500 italic">
-              Descarga el circuito para ver los puntos de interés detallados y el mapa offline.
+              {t('circuit.offline_req')}
             </div>
           )}
         </div>
       </div>
 
-      {/* Floating CTA */}
-      <div className="fixed bottom-0 left-0 w-full p-4 pb-6 bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark z-40">
-        <button 
-          onClick={() => navigate('/navigation')}
-          className="w-full bg-primary hover:bg-primary-dark text-black font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-        >
-          <span className="material-symbols-outlined">navigation</span>
-          Iniciar Recorrido
-        </button>
+      <div className="fixed bottom-20 left-0 w-full px-4 pt-4 pb-2 bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark z-40">
+        <div className="flex gap-3">
+          <button 
+            onClick={handleOpenMap}
+            className="flex-1 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-text-main dark:text-white font-bold py-4 rounded-2xl shadow-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+          >
+            <span className="material-symbols-outlined">map</span>
+            {t('circuit.map')}
+          </button>
+
+          <button 
+            onClick={handleStartCircuit}
+            className="flex-[2] bg-black text-white font-bold py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined">play_circle</span>
+            {isDownloading ? t('circuit.downloading') : t('circuit.start_guided')}
+          </button>
+        </div>
       </div>
     </div>
   );

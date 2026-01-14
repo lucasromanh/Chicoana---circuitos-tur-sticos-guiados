@@ -1,3 +1,4 @@
+
 export interface Circuit {
   id: string;
   title: string;
@@ -22,6 +23,9 @@ export interface POI {
   image: string;
   distanceFromStart: string;
   audioDuration?: string;
+  audioUrl?: string;
+  videoThumbnail?: string;
+  videoUrl?: string;
 }
 
 export interface DownloadItem {
@@ -33,6 +37,8 @@ export interface DownloadItem {
   image: string;
   type: 'circuit' | 'guide' | 'map';
 }
+
+export type LanguageCode = 'es' | 'en' | 'pt' | 'de' | 'it' | 'fr' | 'zh' | 'ja';
 
 export enum AppRoute {
   SPLASH = '/',

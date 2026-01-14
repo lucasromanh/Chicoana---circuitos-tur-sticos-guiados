@@ -4,6 +4,7 @@ import { useNavigate } from '@/navigation/routerAdapter';
 import { AVAILABLE_DOWNLOADS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import BottomNavNative from '@/components/BottomNavNative';
 
 const Downloads: React.FC = () => {
   const navigate = useNavigate();
@@ -170,7 +171,7 @@ const Downloads: React.FC = () => {
                 <View key={item.id} className="bg-white dark:bg-zinc-900 p-3 rounded-[1.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
                   {item.type === 'circuit' && item.image ? (
                     <View className="relative h-32 w-full rounded-2xl overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
-                      <Image source={{ uri: item.image }} className="w-full h-full" resizeMode="cover" />
+                      <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                       {updateAvailable && !isUpdating && (
                         <View className="absolute top-3 right-3 bg-[#fcefb4] px-2 py-1 rounded-lg flex-row items-center gap-1 shadow-sm">
                           <MaterialIcons name="update" size={12} color="#9a3412" />
@@ -289,6 +290,7 @@ const Downloads: React.FC = () => {
           </View>
         </View>
       )}
+      <BottomNavNative />
     </View>
   );
 };

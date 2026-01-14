@@ -24,7 +24,16 @@ const MapOverview: React.FC = () => {
     return true;
   });
 
-  const allPois = filteredCircuits.flatMap((c: any) => c.pois.map((p: any) => ({ ...p, circuitColor: c.color || '#F44336', circuitId: c.id })));
+  const allPois = filteredCircuits.flatMap((c: any, circuitIndex: number) => 
+    c.pois.map((p: any, poiIndex: number) => ({ 
+      ...p, 
+      circuitColor: c.color || '#10b981', 
+      circuitId: c.id,
+      // Coordenadas de ejemplo para Chicoana
+      lat: p.lat || (-25.10445 + (circuitIndex * 0.002) + (poiIndex * 0.001)),
+      lng: p.lng || (-65.53455 + (circuitIndex * 0.002) + (poiIndex * 0.001))
+    }))
+  );
 
   const handleMarkerPress = (poi: any) => {
     setActivePoi(poi);

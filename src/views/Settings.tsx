@@ -5,6 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { AVATARS } from '@/constants';
 import { LANGUAGES } from '@/translations';
 import { MaterialIcons } from '@expo/vector-icons';
+import BottomNavNative from '@/components/BottomNavNative';
 
 // Modal Component helper
 const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
@@ -76,8 +77,9 @@ const Settings: React.FC = () => {
    );
 
    return (
-      <ScrollView className="flex-1 bg-gray-50 dark:bg-zinc-950" contentContainerStyle={{ paddingBottom: 100, paddingTop: 48, paddingHorizontal: 16 }}>
-         <Text className="text-2xl font-bold mb-6 dark:text-white">{t('settings.title')}</Text>
+      <View className="flex-1">
+         <ScrollView className="flex-1 bg-gray-50 dark:bg-zinc-950" contentContainerStyle={{ paddingBottom: 100, paddingTop: 48, paddingHorizontal: 16 }}>
+            <Text className="text-2xl font-bold mb-6 dark:text-white">{t('settings.title')}</Text>
 
          <View className="gap-6">
 
@@ -363,6 +365,8 @@ const Settings: React.FC = () => {
          </Modal>
 
       </ScrollView>
+      <BottomNavNative />
+      </View>
    );
 };
 

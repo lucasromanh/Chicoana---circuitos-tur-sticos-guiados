@@ -4,6 +4,7 @@ import { useNavigate } from '@/navigation/routerAdapter';
 import { AVATARS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import BottomNavNative from '@/components/BottomNavNative';
 
 const { width } = Dimensions.get('window');
 
@@ -181,17 +182,15 @@ const Home: React.FC = () => {
                   <View className="aspect-[4/3] relative rounded-[1.5rem] overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
                     <Image
                       source={{ uri: circuit.image }}
-                      className="w-full h-full"
+                      style={{ width: '100%', height: '100%' }}
                       resizeMode="cover"
                     />
 
                     {/* Favorite Button */}
                     <View className="absolute top-3 right-3">
                       <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(circuit.id);
-                        }}
+                        onPress={() => toggleFavorite(circuit.id)}
+                        activeOpacity={0.7}
                         className={`w-8 h-8 rounded-full items-center justify-center shadow-sm ${isFav ? 'bg-red-500' : 'bg-white/30'}`}
                       >
                         <MaterialIcons name={isFav ? "favorite" : "favorite-border"} size={18} color="white" />
@@ -239,6 +238,7 @@ const Home: React.FC = () => {
           )}
         </View>
       </ScrollView>
+      <BottomNavNative />
     </View>
   );
 };

@@ -4,19 +4,8 @@ const path = require('path');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Agregar soporte para CSS
+// Agregar soporte para CSS (NativeWind v2)
 config.resolver.sourceExts.push('css');
-
-// Configurar transformer
-config.transformer = {
-    ...config.transformer,
-    getTransformOptions: async () => ({
-        transform: {
-            experimentalImportSupport: false,
-            inlineRequires: true,
-        },
-    }),
-};
 
 // Especificar el template HTML personalizado para web
 config.server = {

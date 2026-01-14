@@ -9,10 +9,9 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                primary: '#10b981', // green-500
+                primary: '#10b981',
             },
         },
     },
     plugins: [],
-    presets: [require("nativewind/preset")],
 }

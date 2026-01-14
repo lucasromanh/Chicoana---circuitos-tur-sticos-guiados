@@ -85,7 +85,7 @@ const Splash: React.FC = () => {
             Chicoana
           </Text>
           <View className="bg-white/20 border border-white/30 px-4 py-1.5 rounded-full">
-            <Text className="text-white font-bold tracking-[0.2em] uppercase text-xs drop-shadow-sm">
+            <Text className="text-white font-bold tracking-widest uppercase text-xs drop-shadow-sm">
               Circuitos Guiados
             </Text>
           </View>

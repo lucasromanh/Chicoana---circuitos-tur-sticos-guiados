@@ -222,10 +222,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         for (const fKey of keys) {
           if (fallback && fallback[fKey]) fallback = fallback[fKey];
         }
-        return fallback || path;
+        return typeof fallback === 'string' ? fallback : path;
       }
     }
-    return current as string;
+    // If current is an object, return the path (don't render objects)
+    return typeof current === 'string' ? current : path;
   };
 
   // Localized Circuits

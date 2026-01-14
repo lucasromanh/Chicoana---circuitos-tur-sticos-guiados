@@ -58,7 +58,7 @@ const CircuitDetail: React.FC = () => {
         <View className="relative h-72 bg-gray-200 dark:bg-gray-800">
           <Image
             source={{ uri: circuit.image }}
-            className="w-full h-full"
+            style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
           <LinearGradient
@@ -166,7 +166,8 @@ const CircuitDetail: React.FC = () => {
                   <View className="flex-1 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex-row gap-3">
                     <Image
                       source={{ uri: poi.image }}
-                      className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800"
+                      style={{ width: 64, height: 64, borderRadius: 8 }}
+                      className="bg-gray-100 dark:bg-gray-800"
                     />
                     <View className="flex-1">
                       <View className="flex-row justify-between items-start mb-0.5">

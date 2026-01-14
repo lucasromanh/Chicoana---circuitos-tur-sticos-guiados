@@ -53,7 +53,7 @@ const PoiDetail: React.FC = () => {
         <View className="relative h-96 bg-gray-200 dark:bg-gray-800">
           <Image
             source={{ uri: poi.image }}
-            className="w-full h-full"
+            style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
           <LinearGradient

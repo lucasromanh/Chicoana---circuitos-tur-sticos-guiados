@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from '@/navigation/routerAdapter';
+import { useNavigate } from 'react-router-dom';
 import { AVATARS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
 
@@ -133,8 +133,8 @@ const Home: React.FC = () => {
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
             className={`px-2 py-2.5 rounded-xl text-[11px] font-bold text-center transition-all shadow-sm flex items-center justify-center gap-1 ${selectedCategory === cat.id
-                ? 'bg-text-main text-white shadow-black/10 scale-[1.02]'
-                : 'bg-white dark:bg-surface-dark border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              ? 'bg-text-main text-white shadow-black/10 scale-[1.02]'
+              : 'bg-white dark:bg-surface-dark border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
           >
             {cat.id === 'Favoritos' && (

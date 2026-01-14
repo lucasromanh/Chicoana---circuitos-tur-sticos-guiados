@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useParams, useNavigate } from '@/navigation/routerAdapter';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 
 const CircuitDetail: React.FC = () => {

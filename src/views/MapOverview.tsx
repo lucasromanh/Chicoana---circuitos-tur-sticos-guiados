@@ -157,7 +157,7 @@ const MapOverview: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full h-screen bg-gray-200 dark:bg-[#0f0f0f] overflow-hidden font-display select-none">
+    <div className="relative w-full h-screen bg-gray-200 dark:bg-[#0f0f0f] overflow-auto font-display select-none">
 
       {/* --- MAP CONTAINER (Leaflet) --- */}
       <div id="map-container" ref={mapContainerRef} className="absolute inset-0 z-0"></div>
@@ -171,7 +171,7 @@ const MapOverview: React.FC = () => {
       {/* --- UI CONTROLS --- */}
 
       {/* Top Pills */}
-      <div className="absolute top-0 left-0 w-full p-4 pt-safe-top z-40 pointer-events-none">
+      <div className="absolute top-0 left-0 w-full p-4 pt-4 z-40 pointer-events-none">
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pointer-events-auto">
           <button className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-sm border active:scale-95 transition-transform ${isOfflineReady ? 'bg-green-100 border-green-200' : 'bg-white dark:bg-surface-dark border-gray-100 dark:border-gray-700'}`}>
             <span className={`material-symbols-outlined text-base ${isOfflineReady ? 'text-green-600' : 'text-gray-500'}`}>{isOfflineReady ? 'check_circle' : 'wifi_off'}</span>

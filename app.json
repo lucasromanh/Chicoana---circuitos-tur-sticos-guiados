@@ -29,6 +29,10 @@
                 "backgroundColor": "#ffffff"
             },
             "package": "com.chicoana.turismo"
+        },
+        "web": {
+            "bundler": "metro",
+            "favicon": "./assets/icon.jpg"
         }
     }
 }

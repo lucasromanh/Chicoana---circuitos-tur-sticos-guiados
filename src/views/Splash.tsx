@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/navigation/routerAdapter';
 
 const Splash: React.FC = () => {
   const navigate = useNavigate();

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/navigation/routerAdapter';
 import { AVATARS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
 

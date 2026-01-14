@@ -40,5 +40,5 @@ config.server = {
     },
 };
 
-module.exports = withNativeWind(config, { input: './src/global.css' });
+module.exports = withNativeWind(config, { input: path.join(__dirname, 'src/global.css') });
 

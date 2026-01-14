@@ -4,7 +4,7 @@
  * pero usando React Navigation para React Native
  */
 
-import { createNavigationContainerRef } from '@react-navigation/native';
+import { createNavigationContainerRef, useRoute as useNativeRoute } from '@react-navigation/native';
 
 export type RootStackParamList = {
     Splash: undefined;
@@ -85,7 +85,11 @@ export function useLocation() {
 }
 
 // Hook para obtener parámetros de ruta
-export function useParams() {
-    // Este hook será reemplazado por useRoute de React Navigation en los componentes
-    return {};
+export function useParams<T = any>(): T {
+    try {
+        const route = useNativeRoute<any>();
+        return (route.params || {}) as T;
+    } catch (e) {
+        return {} as T;
+    }
 }

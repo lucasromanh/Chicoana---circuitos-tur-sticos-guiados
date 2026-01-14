@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { UserProvider } from '@/contexts/UserContext';
+import '@/global.css';
 import { navigationRef } from '@/navigation/routerAdapter';
 
 // Import views

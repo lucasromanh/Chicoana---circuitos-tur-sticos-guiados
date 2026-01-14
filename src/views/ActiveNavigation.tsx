@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@/navigation/routerAdapter';
 import { CIRCUITS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
 import { calculateOfflineRoute, Coordinate, RouteResult } from '@/services/map/geoEngine';

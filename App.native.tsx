@@ -26,6 +26,7 @@ export default function AppNative() {
             <NavigationContainer ref={navigationRef}>
                 <StatusBar style="auto" />
                 <Stack.Navigator
+                    id="RootStack"
                     initialRouteName="Splash"
                     screenOptions={{
                         headerShown: false,

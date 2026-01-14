@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from '@/navigation/routerAdapter';
 import { useUser } from '@/contexts/UserContext';
 
 

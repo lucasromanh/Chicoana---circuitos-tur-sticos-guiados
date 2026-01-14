@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/navigation/routerAdapter';
 import { useUser } from '@/contexts/UserContext';
 import { AVATARS } from '@/constants';
 import { LANGUAGES } from '@/translations';

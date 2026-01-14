@@ -6,7 +6,8 @@ const path = require('path');
 const config = getDefaultConfig(__dirname);
 
 // Agregar soporte para TypeScript y alias
-config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json', 'css'];
+// Agregar soporte para TypeScript y alias
+config.resolver.sourceExts.push('css');
 
 // Configurar el template HTML para web
 config.transformer = {

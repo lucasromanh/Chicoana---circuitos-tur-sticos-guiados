@@ -1,10 +1,9 @@
 
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { AVATARS, CIRCUITS } from '@/constants';
+import { CIRCUITS } from '@/constants';
 import { AppRoute, Circuit, LanguageCode } from '@/types';
 import { UI_TRANSLATIONS, CIRCUIT_DATA_TRANSLATIONS } from '@/translations';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AppSettings {
   darkMode: boolean;
@@ -56,72 +55,104 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // Cargar datos guardados
-    const savedName = localStorage.getItem('chicoana_user_name');
-    const savedAvatar = localStorage.getItem('chicoana_user_avatar');
-    const savedFavorites = localStorage.getItem('chicoana_user_favorites');
-    const savedDownloads = localStorage.getItem('chicoana_downloads');
-    const savedVisited = localStorage.getItem('chicoana_visited_pois');
-    const savedSettings = localStorage.getItem('chicoana_settings');
-
-    if (savedName) {
-      setUserNameState(savedName);
-      setIsProfileComplete(true);
-    }
-    if (savedAvatar) {
-      setUserAvatarIdState(savedAvatar);
-    }
-    if (savedFavorites) {
-      try { setFavorites(JSON.parse(savedFavorites)); } catch (e) { }
-    }
-    if (savedDownloads) {
-      try { setDownloadedCircuits(JSON.parse(savedDownloads)); } catch (e) { }
-    }
-    if (savedVisited) {
-      try { setVisitedPois(JSON.parse(savedVisited)); } catch (e) { }
-    }
-    if (savedSettings) {
+    const loadData = async () => {
       try {
-        setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
-      } catch (e) { }
-    }
+        const savedName = await AsyncStorage.getItem('chicoana_user_name');
+        const savedAvatar = await AsyncStorage.getItem('chicoana_user_avatar');
+        const savedFavorites = await AsyncStorage.getItem('chicoana_user_favorites');
+        const savedDownloads = await AsyncStorage.getItem('chicoana_downloads');
+        const savedVisited = await AsyncStorage.getItem('chicoana_visited_pois');
+        const savedSettings = await AsyncStorage.getItem('chicoana_settings');
+
+        if (savedName) {
+          setUserNameState(savedName);
+          setIsProfileComplete(true);
+        }
+        if (savedAvatar) {
+          setUserAvatarIdState(savedAvatar);
+        }
+        if (savedFavorites) {
+          try { setFavorites(JSON.parse(savedFavorites)); } catch (e) { }
+        }
+        if (savedDownloads) {
+          try { setDownloadedCircuits(JSON.parse(savedDownloads)); } catch (e) { }
+        }
+        if (savedVisited) {
+          try { setVisitedPois(JSON.parse(savedVisited)); } catch (e) { }
+        }
+        if (savedSettings) {
+          try {
+            setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
+          } catch (e) { }
+        }
+      } catch (error) {
+        console.error("Failed to load user data", error);
+      }
+    };
+    loadData();
   }, []);
 
-  // Efecto para aplicar Modo Oscuro
+  // Efecto para aplicar Modo Oscuro (this might need native specific implementation if just DOM manipulation, but keeping logic for now)
+  // Converting class manipulation to non-DOM for React Native is usually handled by providers or conditional styles, 
+  // but let's keep the state logic consistent. The actual 'dark' class application doesn't work in RN same way.
+  // For RN, we typically don't manipulate 'document'.
+  // We'll leave the state update but remove the document manipulation which crashes RN.
+  // The actual theme should be handled by the UI components checking the settings or a ThemeProvider.
   useEffect(() => {
-    const html = document.documentElement;
-    if (settings.darkMode) {
-      html.classList.add('dark');
-    } else {
-      html.classList.remove('dark');
-    }
+    // React Native doesn't have document.documentElement
+    // Logic for applying theme in RN usually goes through a context or NativeWind's useColorScheme
+    // Since we are likely using NativeWind (implied by className usage in previous files), 
+    // we might need to sync this setting with NativeWind.
+    // For now, removing the DOM manipulation to prevent crash.
   }, [settings.darkMode]);
 
-  const setUserName = (name: string) => {
+  const setUserName = async (name: string) => {
     setUserNameState(name);
-    if (name.trim().length > 0) {
-      localStorage.setItem('chicoana_user_name', name);
-      setIsProfileComplete(true);
-    } else {
-      localStorage.removeItem('chicoana_user_name');
-      setIsProfileComplete(false);
-    }
-  };
-
-  const setUserAvatarId = (id: string) => {
-    setUserAvatarIdState(id);
-    localStorage.setItem('chicoana_user_avatar', id);
-  };
-
-  const toggleFavorite = (id: string) => {
-    setFavorites(prev => {
-      let newFavorites;
-      if (prev.includes(id)) {
-        newFavorites = prev.filter(favId => favId !== id);
+    try {
+      if (name.trim().length > 0) {
+        await AsyncStorage.setItem('chicoana_user_name', name);
+        setIsProfileComplete(true);
       } else {
-        newFavorites = [...prev, id];
+        await AsyncStorage.removeItem('chicoana_user_name');
+        setIsProfileComplete(false);
       }
-      localStorage.setItem('chicoana_user_favorites', JSON.stringify(newFavorites));
-      return newFavorites;
+    } catch (e) { console.error(e); }
+  };
+
+  const setUserAvatarId = async (id: string) => {
+    setUserAvatarIdState(id);
+    try {
+      await AsyncStorage.setItem('chicoana_user_avatar', id);
+    } catch (e) { console.error(e); }
+  };
+
+  const toggleFavorite = async (id: string) => {
+    try {
+      let newFavorites: string[] = [];
+      setFavorites(prev => {
+        if (prev.includes(id)) {
+          newFavorites = prev.filter(favId => favId !== id);
+        } else {
+          newFavorites = [...prev, id];
+        }
+        return newFavorites;
+      });
+      // We need to wait for the state calculation or just use the local var
+      // Using the local var 'newFavorites' which is captured correctly in the closure if we were careful, 
+      // but here we are inside setFavorites callback which is synchronous but returning the value.
+      // Better way: calculate new value first, then set state and storage.
+    } catch (e) { console.error(e); }
+
+    // Reworking to be safe with async/state
+    setFavorites(prev => {
+      let next: string[];
+      if (prev.includes(id)) {
+        next = prev.filter(favId => favId !== id);
+      } else {
+        next = [...prev, id];
+      }
+      AsyncStorage.setItem('chicoana_user_favorites', JSON.stringify(next)).catch(console.error);
+      return next;
     });
   };
 
@@ -131,7 +162,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setDownloadedCircuits(prev => {
           if (!prev.includes(id)) {
             const updated = [...prev, id];
-            localStorage.setItem('chicoana_downloads', JSON.stringify(updated));
+            AsyncStorage.setItem('chicoana_downloads', JSON.stringify(updated)).catch(console.error);
             return updated;
           }
           return prev;
@@ -144,7 +175,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const removeDownload = (id: string) => {
     setDownloadedCircuits(prev => {
       const updated = prev.filter(item => item !== id);
-      localStorage.setItem('chicoana_downloads', JSON.stringify(updated));
+      AsyncStorage.setItem('chicoana_downloads', JSON.stringify(updated)).catch(console.error);
       return updated;
     });
   };
@@ -153,7 +184,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setVisitedPois(prev => {
       if (!prev.includes(id)) {
         const updated = [...prev, id];
-        localStorage.setItem('chicoana_visited_pois', JSON.stringify(updated));
+        AsyncStorage.setItem('chicoana_visited_pois', JSON.stringify(updated)).catch(console.error);
         return updated;
       }
       return prev;
@@ -163,13 +194,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateSetting = (key: keyof AppSettings, value: any) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
-      localStorage.setItem('chicoana_settings', JSON.stringify(newSettings));
+      AsyncStorage.setItem('chicoana_settings', JSON.stringify(newSettings)).catch(console.error);
       return newSettings;
     });
   };
 
   const resetTutorial = () => {
-    localStorage.removeItem('chicoana_user_name');
+    AsyncStorage.removeItem('chicoana_user_name').catch(console.error);
     setUserNameState('');
     setIsProfileComplete(false);
   };

@@ -1,39 +1,37 @@
-
 import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { useNavigate } from '@/navigation/routerAdapter';
 import { AVAILABLE_DOWNLOADS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const Downloads: React.FC = () => {
   const navigate = useNavigate();
-  // USAMOS "circuits" del contexto, que ya viene traducido
+  // @ts-ignore
   const { downloadedCircuits, removeDownload, simulateDownload, t, circuits } = useUser();
 
   const [loadingItems, setLoadingItems] = useState<string[]>([]);
   const [needsUpdate, setNeedsUpdate] = useState<string[]>(['ruta-tabaco']);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Helper para mostrar Toast
+  // Toast simulation
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
   const allItems = useMemo(() => {
-    // 1. Mapear los circuitos traducidos (vienen del Context)
-    const circuitItems = circuits.map(c => ({
+    const circuitItems = circuits.map((c: any) => ({
       id: c.id,
       title: c.title,
       size: c.downloadSize,
-      description: `Ver ${c.version}`, // Simplificado para evitar líos de traducción en el número
+      description: `Ver ${c.version}`,
       image: c.image,
       type: 'circuit' as const,
       icon: 'map'
     }));
 
-    // 2. Mapear los extras (vienen de constantes) pero traducir sus títulos al vuelo
     const extraItems = AVAILABLE_DOWNLOADS.map(e => {
-      // Lógica de traducción para items extra basada en ID
       let localizedTitle = e.title;
       let localizedDesc = e.description;
 
@@ -63,9 +61,8 @@ const Downloads: React.FC = () => {
     });
 
     return [...circuitItems, ...extraItems];
-  }, [circuits, t]); // Dependencia clave: circuits y t
+  }, [circuits, t]);
 
-  // Filtrado directo basado en el estado del contexto
   const downloadedItems = allItems.filter(item => downloadedCircuits.includes(item.id));
   const availableItems = allItems.filter(item => !downloadedCircuits.includes(item.id));
 
@@ -85,18 +82,28 @@ const Downloads: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('¿Eliminar esta descarga del dispositivo?')) {
-      removeDownload(id);
-      setNeedsUpdate(prev => prev.filter(i => i !== id));
-      showToast('Elemento eliminado');
-    }
+    Alert.alert(
+      'Eliminar Descarga',
+      '¿Eliminar esta descarga del dispositivo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            removeDownload(id);
+            setNeedsUpdate(prev => prev.filter(i => i !== id));
+            showToast('Elemento eliminado');
+          }
+        }
+      ]
+    );
   };
 
   const handleOpen = (item: typeof allItems[0]) => {
     if (item.type === 'circuit') {
       navigate(`/circuit/${item.id}`);
     } else {
-      // Manejo de Extras
       if (item.id === 'chicoana-map-pack' || item.id === 'trekking-maps') {
         navigate('/map');
       } else if (item.id === 'audio-pack-es') {
@@ -108,214 +115,182 @@ const Downloads: React.FC = () => {
   };
 
   return (
-    <div className="px-5 pt-8 min-h-screen bg-gray-50 dark:bg-background-dark pb-24 font-display transition-colors duration-300 relative">
+    <View className="flex-1 bg-gray-50 dark:bg-zinc-950">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 60, paddingBottom: 100 }}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between mb-8">
+          <TouchableOpacity onPress={() => navigate(-1)} className="w-10 h-10 rounded-full items-center justify-center bg-gray-100 dark:bg-gray-800">
+            <MaterialIcons name="arrow-back" size={24} color="gray" />
+          </TouchableOpacity>
+          <Text className="text-lg font-bold text-gray-900 dark:text-white">{t('downloads.title')}</Text>
+          <TouchableOpacity onPress={() => navigate('/settings')}>
+            <Text className="text-sm font-bold text-gray-500">{t('nav.settings')}</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-black/80 dark:bg-white/90 text-white dark:text-black text-xs font-bold px-4 py-2 rounded-full shadow-xl z-50 animate-fade-in-up flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm">check_circle</span>
-          {toastMessage}
-        </div>
-      )}
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-8 pt-safe-top">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-1 rounded-full text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          <span className="material-symbols-outlined text-xl">arrow_back</span>
-        </button>
-        <h1 className="text-lg font-bold text-gray-900 dark:text-white">{t('downloads.title')}</h1>
-        <button onClick={() => navigate('/settings')} className="text-sm font-bold text-gray-500 hover:text-gray-900 dark:hover:text-gray-300">
-          {t('nav.settings')}
-        </button>
-      </div>
-
-      {/* STORAGE USAGE CARD */}
-      <div className="mb-8">
-        <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">{t('downloads.storage')}</h2>
-        <div className="bg-white dark:bg-surface-dark p-5 rounded-[1.5rem] shadow-sm border border-gray-100 dark:border-gray-800">
-          <div className="flex justify-between items-baseline mb-2">
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white">
+        {/* Storage Usage Card */}
+        <View className="mb-8 bg-white dark:bg-zinc-900 p-5 rounded-[1.5rem] shadow-sm border border-gray-100 dark:border-gray-800">
+          <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">{t('downloads.storage')}</Text>
+          <View className="flex-row justify-between items-baseline mb-2">
+            <Text className="text-2xl font-black text-gray-900 dark:text-white">
               {(downloadedItems.length * 0.15 + 0.5).toFixed(1)} GB
-            </h3>
-            <span className="text-xs font-bold text-primary-dark dark:text-primary">45 GB {t('downloads.free_space')}</span>
-          </div>
-          <p className="text-[10px] font-medium text-gray-400 mb-3">{t('downloads.used_by')}</p>
-          <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex mb-2">
-            <div className="h-full bg-[#80ec13] rounded-full transition-all duration-500" style={{ width: `${(downloadedItems.length * 5) + 10}%` }}></div>
-          </div>
-          <div className="flex justify-between text-[9px] font-bold text-gray-300">
-            <span>0 GB</span>
-            <span>128 GB</span>
-          </div>
-        </div>
-      </div>
+            </Text>
+            <Text className="text-xs font-bold text-primary-dark dark:text-primary">45 GB {t('downloads.free_space')}</Text>
+          </View>
+          <Text className="text-[10px] font-medium text-gray-400 mb-3">{t('downloads.used_by')}</Text>
+          <View className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden flex-row mb-2">
+            <View className="h-full bg-[#80ec13]" style={{ width: `${(downloadedItems.length * 5) + 10}%` }} />
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-[9px] font-bold text-gray-300">0 GB</Text>
+            <Text className="text-[9px] font-bold text-gray-300">128 GB</Text>
+          </View>
+        </View>
 
-      {/* --- DOWNLOADED ITEMS SECTION --- */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('downloads.downloaded')}</h2>
-        <span className="bg-[#e0fec0] text-green-800 text-[10px] font-bold px-2 py-0.5 rounded-md">
-          {downloadedItems.length} items
-        </span>
-      </div>
+        {/* Downloaded Items */}
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-lg font-bold text-gray-900 dark:text-white">{t('downloads.downloaded')}</Text>
+          <View className="bg-[#e0fec0] px-2 py-0.5 rounded-md">
+            <Text className="text-green-800 text-[10px] font-bold">{downloadedItems.length} items</Text>
+          </View>
+        </View>
 
-      <div className="space-y-6 mb-8">
-        {downloadedItems.length === 0 ? (
-          <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl">
-            <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">cloud_off</span>
-            <p className="text-sm text-gray-400">{t('downloads.empty')}</p>
-          </div>
-        ) : (
-          downloadedItems.map(item => {
-            const isUpdating = loadingItems.includes(item.id);
-            const updateAvailable = needsUpdate.includes(item.id);
+        <View className="gap-6 mb-8">
+          {downloadedItems.length === 0 ? (
+            <View className="items-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl">
+              <MaterialIcons name="cloud-off" size={40} color="#d1d5db" />
+              <Text className="text-sm text-gray-400 mt-2">{t('downloads.empty')}</Text>
+            </View>
+          ) : (
+            downloadedItems.map(item => {
+              const isUpdating = loadingItems.includes(item.id);
+              const updateAvailable = needsUpdate.includes(item.id);
 
-            return (
-              <div key={item.id} className="bg-white dark:bg-surface-dark p-3 rounded-[1.5rem] border border-gray-100 dark:border-gray-800 shadow-sm animate-fade-in-up">
-
-                {/* Si es un circuito con imagen */}
-                {item.type === 'circuit' && item.image ? (
-                  <div className="relative h-32 w-full rounded-2xl overflow-hidden mb-3 group bg-gray-100 dark:bg-gray-800">
-                    <img
-                      src={item.image}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      alt={item.title}
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=800";
-                      }}
-                    />
-                    {updateAvailable && !isUpdating && (
-                      <div className="absolute top-3 right-3 bg-[#fcefb4] text-orange-800 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-                        <span className="material-symbols-outlined text-xs">update</span> {t('downloads.version_update')} v1.2
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  // Si es un "Extra" sin imagen grande
-                  <div className="flex items-center gap-4 p-2 mb-2">
-                    <div className="w-12 h-12 bg-[#f0f9ff] dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-500">
-                      <span className="material-symbols-outlined">{item.icon}</span>
-                    </div>
-                    {updateAvailable && (
-                      <div className="bg-[#fcefb4] text-orange-800 text-[10px] font-bold px-2 py-1 rounded-lg ml-auto">
-                        {t('downloads.version_update')}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="px-1 pb-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold text-base text-gray-900 dark:text-white leading-tight">{item.title}</h3>
-                    {!isUpdating && !updateAvailable && (
-                      <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] font-medium text-gray-400 mb-4">{item.size} • {item.description}</p>
-
-                  {/* Action Buttons Row */}
-                  <div className="flex gap-2">
-                    {/* Main Action Button */}
-                    {updateAvailable ? (
-                      <button
-                        onClick={() => handleUpdate(item.id)}
-                        disabled={isUpdating}
-                        className="flex-1 bg-[#141811] dark:bg-white text-white dark:text-black hover:opacity-90 active:scale-[0.98] transition-all text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm disabled:opacity-70"
-                      >
-                        {isUpdating ? (
-                          <>
-                            <span className="material-symbols-outlined text-lg animate-spin">sync</span> {t('downloads.updating')}
-                          </>
-                        ) : (
-                          <>
-                            <span className="material-symbols-outlined text-lg">sync</span> {t('downloads.update')}
-                          </>
-                        )}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleOpen(item)}
-                        className="flex-1 bg-[#80ec13] hover:bg-[#72d611] active:scale-[0.98] transition-all text-black text-xs font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm"
-                      >
-                        <span className="material-symbols-outlined text-lg">
-                          {(item.id === 'audio-pack-es') ? 'play_circle' : 'map'}
-                        </span>
-                        {t('downloads.open')}
-                      </button>
-                    )}
-
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="w-10 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-lg">delete</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* --- AVAILABLE FOR DOWNLOAD SECTION --- */}
-      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('downloads.available')}</h2>
-
-      <div className="space-y-3">
-        {availableItems.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">¡Todo está descargado! 🎉</p>
-        ) : (
-          availableItems.map(item => {
-            const isLoading = loadingItems.includes(item.id);
-            return (
-              <div key={item.id} className="bg-white dark:bg-surface-dark p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between shadow-sm active:scale-[0.99] transition-transform">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 bg-[#f0f9ff] dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-500 shrink-0">
-                    {item.type === 'circuit' && item.image ? (
-                      <img
-                        src={item.image}
-                        alt=""
-                        className="w-full h-full object-cover rounded-xl opacity-80"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=200";
-                        }}
-                      />
-                    ) : (
-                      <span className="material-symbols-outlined">{item.icon}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0 pr-2">
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">{item.title}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 mt-0.5">{item.size} • <span className="font-medium">{item.description}</span></p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleDownload(item.id)}
-                  disabled={isLoading}
-                  className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 shrink-0"
-                >
-                  {isLoading ? (
-                    <span className="material-symbols-outlined animate-spin text-primary">progress_activity</span>
+              return (
+                <View key={item.id} className="bg-white dark:bg-zinc-900 p-3 rounded-[1.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
+                  {item.type === 'circuit' && item.image ? (
+                    <View className="relative h-32 w-full rounded-2xl overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
+                      <Image source={{ uri: item.image }} className="w-full h-full" resizeMode="cover" />
+                      {updateAvailable && !isUpdating && (
+                        <View className="absolute top-3 right-3 bg-[#fcefb4] px-2 py-1 rounded-lg flex-row items-center gap-1 shadow-sm">
+                          <MaterialIcons name="update" size={12} color="#9a3412" />
+                          <Text className="text-orange-800 text-[10px] font-bold">{t('downloads.version_update')} v1.2</Text>
+                        </View>
+                      )}
+                    </View>
                   ) : (
-                    <span className="material-symbols-outlined">download</span>
+                    <View className="flex-row items-center gap-4 p-2 mb-2">
+                      <View className="w-12 h-12 bg-[#f0f9ff] dark:bg-blue-900/20 rounded-xl items-center justify-center">
+                        {/* @ts-ignore */}
+                        <MaterialIcons name={item.icon || 'star'} size={24} color="#3b82f6" />
+                      </View>
+                      {updateAvailable && (
+                        <View className="bg-[#fcefb4] px-2 py-1 rounded-lg ml-auto">
+                          <Text className="text-orange-800 text-[10px] font-bold">{t('downloads.version_update')}</Text>
+                        </View>
+                      )}
+                    </View>
                   )}
-                </button>
-              </div>
-            );
-          })
-        )}
-      </div>
 
-    </div>
+                  <View className="px-1 pb-1">
+                    <View className="flex-row justify-between items-start mb-1">
+                      <Text className="font-bold text-base text-gray-900 dark:text-white flex-1">{item.title}</Text>
+                      {!isUpdating && !updateAvailable && (
+                        <MaterialIcons name="check-circle" size={18} color="#22c55e" />
+                      )}
+                    </View>
+                    <Text className="text-[11px] font-medium text-gray-400 mb-4">{item.size} • {item.description}</Text>
+
+                    <View className="flex-row gap-2">
+                      {updateAvailable ? (
+                        <TouchableOpacity
+                          onPress={() => handleUpdate(item.id)}
+                          disabled={isUpdating}
+                          className="flex-1 bg-black dark:bg-white py-3 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
+                        >
+                          {isUpdating ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <MaterialIcons name="sync" size={18} color="white" />
+                          )}
+                          <Text className="text-white dark:text-black text-xs font-bold">{isUpdating ? t('downloads.updating') : t('downloads.update')}</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => handleOpen(item)}
+                          className="flex-1 bg-primary py-3 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
+                        >
+                          <MaterialIcons name={item.id === 'audio-pack-es' ? 'play-circle' : 'map'} size={18} color="black" />
+                          <Text className="text-black text-xs font-bold">{t('downloads.open')}</Text>
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        onPress={() => handleDelete(item.id)}
+                        className="w-10 bg-red-50 dark:bg-red-900/10 rounded-xl items-center justify-center"
+                      >
+                        <MaterialIcons name="delete" size={18} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
+
+        {/* Available Section */}
+        <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('downloads.available')}</Text>
+        <View className="gap-3">
+          {availableItems.length === 0 ? (
+            <Text className="text-sm text-gray-400 text-center py-4">¡Todo está descargado! 🎉</Text>
+          ) : (
+            availableItems.map(item => {
+              const isLoading = loadingItems.includes(item.id);
+              return (
+                <View key={item.id} className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex-row items-center justify-between shadow-sm">
+                  <View className="flex-row items-center gap-4 flex-1">
+                    <View className="w-12 h-12 bg-[#f0f9ff] dark:bg-blue-900/20 rounded-xl items-center justify-center shrink-0">
+                      {item.type === 'circuit' && item.image ? (
+                        <Image source={{ uri: item.image }} className="w-full h-full rounded-xl opacity-80" resizeMode="cover" />
+                      ) : (
+                        // @ts-ignore
+                        <MaterialIcons name={item.icon || 'cloud-download'} size={24} color="#3b82f6" />
+                      )}
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-gray-900 dark:text-white" numberOfLines={1}>{item.title}</Text>
+                      <Text className="text-[10px] font-bold text-gray-400 mt-0.5">{item.size} • {item.description}</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => handleDownload(item.id)}
+                    disabled={isLoading}
+                    className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 items-center justify-center"
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator size="small" color="#80EC13" />
+                    ) : (
+                      <MaterialIcons name="download" size={20} color="gray" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+      {toastMessage && (
+        <View className="absolute top-12 left-0 right-0 items-center z-50">
+          <View className="bg-black/80 px-4 py-2 rounded-full flex-row items-center gap-2">
+            <MaterialIcons name="check-circle" size={16} color="white" />
+            <Text className="text-white text-xs font-bold">{toastMessage}</Text>
+          </View>
+        </View>
+      )}
+    </View>
   );
 };
 
 export default Downloads;
-

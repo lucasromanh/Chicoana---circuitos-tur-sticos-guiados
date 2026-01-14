@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AVAILABLE_DOWNLOADS } from '../constants';
-import { useUser } from '../contexts/UserContext';
+import { AVAILABLE_DOWNLOADS } from '@/constants';
+import { useUser } from '@/contexts/UserContext';
 
 const Downloads: React.FC = () => {
   const navigate = useNavigate();
@@ -318,3 +318,4 @@ const Downloads: React.FC = () => {
 };
 
 export default Downloads;
+

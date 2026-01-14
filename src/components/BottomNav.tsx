@@ -1,7 +1,9 @@
 
+
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '@/contexts/UserContext';
+
 
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +33,7 @@ const BottomNav: React.FC = () => {
           <span className={`text-[10px] ${isActive('/map')}`}>{t('nav.map')}</span>
         </button>
 
-         <button onClick={() => navigate('/downloads')} className="flex flex-col items-center justify-center gap-1 w-16 group active:scale-95 transition-transform">
+        <button onClick={() => navigate('/downloads')} className="flex flex-col items-center justify-center gap-1 w-16 group active:scale-95 transition-transform">
           <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-colors ${bgActive('/downloads')}`}>
             <span className={`material-symbols-outlined text-[24px] ${location.pathname === '/downloads' ? 'filled' : ''}`}>offline_pin</span>
           </div>

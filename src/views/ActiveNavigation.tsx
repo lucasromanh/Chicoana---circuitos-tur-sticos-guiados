@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CIRCUITS } from '../constants';
-import { useUser } from '../contexts/UserContext';
-import { calculateOfflineRoute, Coordinate, RouteResult } from '../services/map/geoEngine';
+import { CIRCUITS } from '@/constants';
+import { useUser } from '@/contexts/UserContext';
+import { calculateOfflineRoute, Coordinate, RouteResult } from '@/services/map/geoEngine';
 
 declare global {
   interface Window {
@@ -325,3 +325,4 @@ const ActiveNavigation: React.FC = () => {
 };
 
 export default ActiveNavigation;
+

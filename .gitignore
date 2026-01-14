@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Expo
+.expo
+.expo-shared
+__generated__
+
+# React Native
+.metro-health-check*

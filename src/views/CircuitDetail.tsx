@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useUser } from '../contexts/UserContext';
+import { useUser } from '@/contexts/UserContext';
 
 const CircuitDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -208,3 +208,4 @@ const CircuitDetail: React.FC = () => {
 };
 
 export default CircuitDetail;
+

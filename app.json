@@ -1,0 +1,34 @@
+{
+    "expo": {
+        "name": "Chicoana Turismo",
+        "slug": "chicoana",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.jpg",
+        "userInterfaceStyle": "light",
+        "extra": {
+            "eas": {
+                "projectId": "5c06de72-8748-4925-b36c-29b39c469e64"
+            }
+        },
+        "splash": {
+            "image": "./assets/splash.jpg",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+        },
+        "assetBundlePatterns": [
+            "**/*"
+        ],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.chicoana.turismo"
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.jpg",
+                "backgroundColor": "#ffffff"
+            },
+            "package": "com.chicoana.turismo"
+        }
+    }
+}

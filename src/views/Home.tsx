@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AVATARS } from '../constants';
-import { useUser } from '../contexts/UserContext';
+import { AVATARS } from '@/constants';
+import { useUser } from '@/contexts/UserContext';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -233,3 +233,4 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+

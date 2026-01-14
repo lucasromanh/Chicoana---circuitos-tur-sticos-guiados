@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../contexts/UserContext';
-import { calculateOfflineRoute, Coordinate, RouteResult } from '../services/map/geoEngine';
+import { useUser } from '@/contexts/UserContext';
+import { calculateOfflineRoute, Coordinate, RouteResult } from '@/services/map/geoEngine';
 
 // Declaración global para Leaflet para evitar errores de TS sin instalar types
 declare global {
@@ -296,3 +296,4 @@ const MapOverview: React.FC = () => {
 };
 
 export default MapOverview;
+

@@ -1,8 +1,10 @@
 
+
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { AVATARS, CIRCUITS } from '../constants';
-import { AppRoute, Circuit, LanguageCode } from '../types';
-import { UI_TRANSLATIONS, CIRCUIT_DATA_TRANSLATIONS } from '../translations';
+import { AVATARS, CIRCUITS } from '@/constants';
+import { AppRoute, Circuit, LanguageCode } from '@/types';
+import { UI_TRANSLATIONS, CIRCUIT_DATA_TRANSLATIONS } from '@/translations';
+
 
 interface AppSettings {
   darkMode: boolean;
@@ -42,7 +44,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [favorites, setFavorites] = useState<string[]>([]);
   const [downloadedCircuits, setDownloadedCircuits] = useState<string[]>(['historic-center', 'ruta-tabaco']);
   const [visitedPois, setVisitedPois] = useState<string[]>([]);
-  
+
   // Settings State
   const [settings, setSettings] = useState<AppSettings>({
     darkMode: false,
@@ -69,18 +71,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUserAvatarIdState(savedAvatar);
     }
     if (savedFavorites) {
-      try { setFavorites(JSON.parse(savedFavorites)); } catch (e) {}
+      try { setFavorites(JSON.parse(savedFavorites)); } catch (e) { }
     }
     if (savedDownloads) {
-      try { setDownloadedCircuits(JSON.parse(savedDownloads)); } catch (e) {}
+      try { setDownloadedCircuits(JSON.parse(savedDownloads)); } catch (e) { }
     }
     if (savedVisited) {
-      try { setVisitedPois(JSON.parse(savedVisited)); } catch (e) {}
+      try { setVisitedPois(JSON.parse(savedVisited)); } catch (e) { }
     }
     if (savedSettings) {
-      try { 
-        setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) })); 
-      } catch (e) {}
+      try {
+        setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
+      } catch (e) { }
     }
   }, []);
 
@@ -135,7 +137,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return prev;
         });
         resolve();
-      }, 2000); 
+      }, 2000);
     });
   };
 
@@ -179,7 +181,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const lang = settings.language;
     const keys = path.split('.');
     let current: any = UI_TRANSLATIONS[lang] || UI_TRANSLATIONS['es'];
-    
+
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
         current = current[key];
@@ -187,7 +189,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Fallback to Spanish if translation missing
         let fallback: any = UI_TRANSLATIONS['es'];
         for (const fKey of keys) {
-            if (fallback && fallback[fKey]) fallback = fallback[fKey];
+          if (fallback && fallback[fKey]) fallback = fallback[fKey];
         }
         return fallback || path;
       }
@@ -199,16 +201,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const circuits = CIRCUITS.map(circuit => {
     const lang = settings.language;
     if (lang === 'es') return circuit; // Default
-    
+
     const translations = CIRCUIT_DATA_TRANSLATIONS[lang]?.[circuit.id];
     if (translations) {
       // Map POIs if translations exist
       const localizedPois = circuit.pois.map(poi => {
-         const poiTrans = translations.pois?.[poi.id];
-         if (poiTrans) {
-             return { ...poi, title: poiTrans.title || poi.title, description: poiTrans.description || poi.description };
-         }
-         return poi;
+        const poiTrans = translations.pois?.[poi.id];
+        if (poiTrans) {
+          return { ...poi, title: poiTrans.title || poi.title, description: poiTrans.description || poi.description };
+        }
+        return poi;
       });
 
       return {
@@ -222,11 +224,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
 
   return (
-    <UserContext.Provider value={{ 
-      userName, 
-      setUserName, 
-      isProfileComplete, 
-      userAvatarId, 
+    <UserContext.Provider value={{
+      userName,
+      setUserName,
+      isProfileComplete,
+      userAvatarId,
       setUserAvatarId,
       favorites,
       toggleFavorite,

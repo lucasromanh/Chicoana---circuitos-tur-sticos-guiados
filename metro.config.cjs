@@ -1,15 +1,13 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
 const path = require('path');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Agregar soporte para TypeScript y alias
-// Agregar soporte para TypeScript y alias
+// Agregar soporte para CSS
 config.resolver.sourceExts.push('css');
 
-// Configurar el template HTML para web
+// Configurar transformer
 config.transformer = {
     ...config.transformer,
     getTransformOptions: async () => ({
@@ -40,5 +38,4 @@ config.server = {
     },
 };
 
-module.exports = withNativeWind(config, { input: './src/global.css' });
-
+module.exports = config;

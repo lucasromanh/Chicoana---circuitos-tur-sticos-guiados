@@ -1,95 +1,220 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CIRCUITS } from '../constants';
 import { useUser } from '../contexts/UserContext';
+import { calculateOfflineRoute, Coordinate, RouteResult } from '../services/map/geoEngine';
+
+declare global {
+  interface Window {
+    L: any;
+  }
+}
 
 const ActiveNavigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, circuits } = useUser();
+  const { t, circuits, downloadedCircuits, simulateDownload } = useUser();
   
   const state = location.state as { circuitId: string } | null;
   const activeCircuitId = state?.circuitId || 'historic-center';
   const activeCircuit = circuits.find(c => c.id === activeCircuitId) || CIRCUITS[0];
   
   const isCarMode = activeCircuit ? parseInt(activeCircuit.distance) > 10 : false;
+  const isMapDownloaded = downloadedCircuits.includes('chicoana-map-pack');
 
   const [distance, setDistance] = useState(isCarMode ? 5000 : 50);
   const [isMuted, setIsMuted] = useState(false);
+  const [isDownloadingMap, setIsDownloadingMap] = useState(false);
 
-  // Simulation loop
+  // --- MAP STATE ---
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
+  
+  // Simulation State
+  const [activeRoute, setActiveRoute] = useState<RouteResult | null>(null);
+  const [userLocation, setUserLocation] = useState<Coordinate>({ lat: -25.10600, lng: -65.53455 }); 
+  const [isFollowing, setIsFollowing] = useState(true); // Controla si la cámara sigue al usuario
+
+  // 1. INYECTAR LEAFLET
   useEffect(() => {
-    const speed = isCarMode ? 50 : 2; 
+    if (document.getElementById('leaflet-css')) {
+        setMapReady(true);
+        return;
+    }
+    const link = document.createElement('link');
+    link.id = 'leaflet-css';
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.id = 'leaflet-js';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.async = true;
+    script.onload = () => setMapReady(true);
+    document.body.appendChild(script);
+  }, []);
+
+  // 2. INICIALIZAR MAPA Y CALCULAR RUTA DEMO
+  useEffect(() => {
+    if (mapReady && mapContainerRef.current && !mapInstanceRef.current) {
+        const L = window.L;
+        
+        // Inicializar mapa centrado
+        const map = L.map(mapContainerRef.current, {
+            zoomControl: false,
+            attributionControl: false,
+            zoomAnimation: true
+        }).setView([userLocation.lat, userLocation.lng], 19);
+
+        // Capa OSM
+        // Si el mapa está "descargado", simulamos usando la misma layer (en app real usaría tile local)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        // Detectar interacción del usuario para desactivar seguimiento automático
+        map.on('dragstart', () => {
+            setIsFollowing(false);
+        });
+
+        // Icono de Navegación (Flecha)
+        const navIcon = L.divIcon({
+            className: 'nav-arrow-icon',
+            html: `
+              <div style="
+                width: 0; 
+                height: 0; 
+                border-left: 12px solid transparent;
+                border-right: 12px solid transparent;
+                border-bottom: 24px solid #3b82f6; 
+                filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+                transform: translate(-50%, -50%);
+              "></div>
+              <div style="
+                position: absolute;
+                top: 10px; left: -15px;
+                width: 30px; height: 30px;
+                background: rgba(59, 130, 246, 0.2);
+                border-radius: 50%;
+                animation: pulse 2s infinite;
+              "></div>
+            `,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+        });
+
+        markerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: navIcon, zIndexOffset: 1000 }).addTo(map);
+        mapInstanceRef.current = map;
+
+        // CALCULAR RUTA VISUAL (Simulada para la demo)
+        const route = calculateOfflineRoute(
+            { lat: -25.10600, lng: -65.53455 }, 
+            { lat: -25.10445, lng: -65.53455 }, 
+            'walking'
+        );
+        
+        if (route) {
+            setActiveRoute(route);
+            const latLngs = route.path.map(p => [p.lat, p.lng]);
+            L.polyline(latLngs, { color: '#1a5f7a', weight: 10, opacity: 0.5 }).addTo(map);
+            routeLayerRef.current = L.polyline(latLngs, { color: '#3b82f6', weight: 7, opacity: 0.9 }).addTo(map);
+        }
+    }
+  }, [mapReady]);
+
+  // 3. SIMULACIÓN DE MOVIMIENTO SUAVE
+  useEffect(() => {
+    if (!activeRoute || !mapInstanceRef.current || !markerRef.current) return;
+    
+    let currentIndex = 0;
+    const path = activeRoute.path;
+    const L = window.L;
+
     const interval = setInterval(() => {
-      setDistance(prev => {
-        if (prev <= 0) return 200; // Reset for demo
-        return Math.max(0, prev - speed);
-      });
+        if (currentIndex >= path.length - 1) {
+            currentIndex = 0; // Reiniciar bucle
+            setDistance(50);
+        }
+
+        const currentPos = path[currentIndex];
+        
+        const newLatLng = new L.LatLng(currentPos.lat, currentPos.lng);
+        
+        // Mover marcador
+        markerRef.current.setLatLng(newLatLng);
+
+        // Solo mover la cámara si el modo seguimiento está activo
+        if (isFollowing) {
+            mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 0.8 });
+        }
+
+        setDistance(prev => Math.max(0, prev - 2));
+        currentIndex++;
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [isCarMode]);
+  }, [activeRoute, mapReady, isFollowing]); // Dependencia clave: isFollowing
+
+  const handleRecenter = () => {
+    if (mapInstanceRef.current && markerRef.current) {
+        setIsFollowing(true);
+        const latLng = markerRef.current.getLatLng();
+        mapInstanceRef.current.flyTo(latLng, 19, { animate: true });
+    }
+  };
+
+  const handleDownloadMap = async () => {
+      setIsDownloadingMap(true);
+      await simulateDownload('chicoana-map-pack');
+      setIsDownloadingMap(false);
+  };
 
   return (
     <div className="relative w-full h-screen bg-gray-200 dark:bg-gray-900 flex flex-col justify-between overflow-hidden font-display">
       
-      {/* 3D Map View Background */}
-      <div className="absolute inset-0 pointer-events-none">
-         {/* Map Structure */}
-         <div className="h-full w-full bg-[#f2f0eb] dark:bg-[#1a1a1a]">
-            {/* 3D Perspective Container */}
-            <div className="absolute inset-0 w-full h-full" style={{ transform: 'perspective(600px) rotateX(45deg) scale(1.5)', transformOrigin: 'center 70%' }}>
-                
-                {/* Ground / Green Areas */}
-                <div className="absolute top-0 left-0 w-full h-full bg-[#f2f0eb] dark:bg-[#1a1a1a]"></div>
-                <div className="absolute top-0 left-[-20%] w-[50%] h-full bg-[#e3eed3] dark:bg-[#24301a]"></div>
-                
-                {/* ROADS - White clean lines */}
-                <div className="absolute inset-0 w-full h-full" style={{ 
-                    backgroundImage: `
-                        linear-gradient(to right, transparent 49%, white 49%, white 51%, transparent 51%),
-                        linear-gradient(to bottom, transparent 49%, white 49%, white 51%, transparent 51%)
-                    `,
-                    backgroundSize: '200px 200px'
-                }}></div>
-
-                {/* The Path being followed (Green) */}
-                <div className="absolute left-[50%] top-0 w-4 h-full bg-primary shadow-[0_0_20px_rgba(128,236,19,0.4)] transform -translate-x-1/2"></div>
-                
-                {/* Buildings (Simple cubes) */}
-                <div className="absolute top-[40%] left-[20%] w-20 h-20 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-700 transform translate-z-10 shadow-lg"></div>
-                <div className="absolute top-[30%] right-[20%] w-32 h-32 bg-gray-200 dark:bg-gray-800 border-2 border-white dark:border-gray-700 transform translate-z-10 shadow-lg"></div>
-
-            </div>
-         </div>
-
-         {/* Navigation Arrow (User) */}
-         <div className="absolute top-[60%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-            {isCarMode ? (
-                 <div className="w-14 h-14 bg-white rounded-full border-4 border-primary flex items-center justify-center shadow-2xl">
-                    <span className="material-symbols-outlined text-black text-2xl">directions_car</span>
-                 </div>
-            ) : (
-                <div className="relative">
-                   <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[35px] border-b-primary filter drop-shadow-xl"></div>
-                   <div className="absolute -bottom-2 -left-4 w-8 h-2 bg-black/20 rounded-full blur-sm"></div>
-                </div>
-            )}
-         </div>
-      </div>
+      {/* --- REAL MAP BACKGROUND (Leaflet) --- */}
+      <div id="nav-map-container" ref={mapContainerRef} className="absolute inset-0 z-0"></div>
+      
+      {/* Overlay gradiente para legibilidad */}
+      <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-white/60 via-transparent to-white/40 dark:from-black/60 dark:to-black/40"></div>
 
       {/* --- UI OVERLAY --- */}
 
       {/* 1. Top Bar Information */}
       <div className="absolute top-4 left-3 right-3 z-20 pt-safe-top">
-         <div className="bg-white dark:bg-gray-900 rounded-full shadow-lg p-1.5 pl-2 pr-2 flex items-center justify-between border border-gray-100 dark:border-gray-800">
+         <div className="bg-white dark:bg-gray-900 rounded-full shadow-lg p-1.5 pl-2 pr-2 flex items-center justify-between border border-gray-100 dark:border-gray-800 backdrop-blur-md bg-opacity-90">
             <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-white transition-colors">
                <span className="material-symbols-outlined text-xl">arrow_back</span>
             </button>
-            <div className="flex-1 px-3">
+            <div className="flex-1 px-3 min-w-0">
                <h3 className="text-xs font-bold text-gray-900 dark:text-white truncate">{activeCircuit?.title || t('navigation.title')}</h3>
-               <p className="text-[10px] text-gray-500 font-medium">15 {t('navigation.min_left')} • 1.2 {t('circuit.distance')}</p>
+               <p className="text-[10px] text-gray-500 font-medium truncate">15 {t('navigation.min_left')} • 1.2 {t('circuit.distance')}</p>
             </div>
+            
+            {!isMapDownloaded ? (
+                <button 
+                  onClick={handleDownloadMap}
+                  disabled={isDownloadingMap}
+                  className="mr-2 px-3 py-1 bg-primary text-black rounded-full text-[10px] font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-transform whitespace-nowrap"
+                >
+                  {isDownloadingMap ? (
+                      <span className="material-symbols-outlined text-xs animate-spin">sync</span>
+                  ) : (
+                      <span className="material-symbols-outlined text-xs">download</span>
+                  )}
+                  Mapa
+                </button>
+            ) : (
+                 <div className="mr-2 px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">check</span>
+                 </div>
+            )}
+
             <button 
               onClick={() => setIsMuted(!isMuted)}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isMuted ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-gray-600'}`}
@@ -101,17 +226,20 @@ const ActiveNavigation: React.FC = () => {
 
       {/* 2. Map Controls (Floating Right) */}
       <div className="absolute right-3 top-36 flex flex-col gap-2 z-20">
-         <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center text-gray-700 dark:text-white active:scale-95 transition-transform">
+         <button 
+            onClick={handleRecenter}
+            className={`w-10 h-10 rounded-xl shadow-lg flex items-center justify-center transition-all border border-gray-100 dark:border-gray-700 ${isFollowing ? 'bg-primary text-black' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-white'}`}
+         >
             <span className="material-symbols-outlined text-xl">my_location</span>
          </button>
-         <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center text-gray-700 dark:text-white active:scale-95 transition-transform">
+         <button className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl shadow-lg flex items-center justify-center text-gray-700 dark:text-white active:scale-95 transition-transform border border-gray-100 dark:border-gray-700">
             <span className="material-symbols-outlined text-xl">layers</span>
          </button>
       </div>
 
-      {/* 3. Bottom Large Card */}
+      {/* 3. Bottom Large Card (Instrucciones) */}
       <div className="absolute bottom-4 left-3 right-3 z-30">
-          <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-2xl p-5 border border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-2xl p-5 border border-gray-100 dark:border-gray-800 animate-fade-in-up">
              
              {/* Handle */}
              <div className="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-4"></div>

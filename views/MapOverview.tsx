@@ -1,176 +1,181 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { calculateOfflineRoute, Coordinate, RouteResult } from '../services/map/geoEngine';
+
+// Declaración global para Leaflet para evitar errores de TS sin instalar types
+declare global {
+  interface Window {
+    L: any;
+  }
+}
 
 const MapOverview: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useUser();
+  const { t, downloadedCircuits } = useUser();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
   
-  // Estado para la transformación del mapa (Pan & Zoom)
-  const [transform, setTransform] = useState({ x: -100, y: -100, scale: 1.2 }); // Empezar un poco zoomeado en el centro
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
-  // Estado para el panel inferior
+  // Estado para el panel inferior y navegación
   const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+  
+  // Estado de Ruteo
+  // Inicio simulado al sur de la plaza
+  const [userLocation, setUserLocation] = useState<Coordinate>({ lat: -25.10600, lng: -65.53455 });
+  const [activeRoute, setActiveRoute] = useState<RouteResult | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
+  // Verificar si el pack de mapas está descargado
+  const isOfflineReady = downloadedCircuits.includes('chicoana-map-pack');
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    setTransform(prev => ({
-      ...prev,
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    }));
-  };
+  // 1. INYECTAR LEAFLET (Estilo y Script)
+  useEffect(() => {
+    // CORRECCIÓN: Verificar si Leaflet ya está disponible en window (cargado por otra vista)
+    if (window.L || document.getElementById('leaflet-js')) {
+        setMapReady(true);
+        return;
+    }
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    const link = document.createElement('link');
+    link.id = 'leaflet-css';
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.id = 'leaflet-js';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.async = true;
+    script.onload = () => setMapReady(true);
+    document.body.appendChild(script);
+  }, []);
+
+  // 2. INICIALIZAR MAPA
+  useEffect(() => {
+    if (mapReady && mapContainerRef.current && !mapInstanceRef.current) {
+        const L = window.L;
+        
+        // Iconos personalizados
+        const userIcon = L.divIcon({
+            className: 'custom-user-icon',
+            html: `<div style="background-color:#3b82f6; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.3);"></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+
+        // Crear mapa centrado en Chicoana Plaza
+        const map = L.map(mapContainerRef.current, {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([-25.10445, -65.53455], 17);
+
+        // Capa OSM (Online) - Nota: En offline real se usarían tiles cacheados localmente
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+        
+        // Atribución manual discreta
+        L.control.attribution({ prefix: false }).addAttribution('© OpenStreetMap').addTo(map);
+
+        // Marcador Usuario
+        markerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map);
+
+        // Marcador Plaza
+        const plazaIcon = L.divIcon({
+            className: 'custom-poi-icon',
+            html: `<div style="background-color:#ef4444; width:24px; height:24px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3); color:white; font-size:14px;"><span class="material-symbols-outlined" style="font-size:16px">flag</span></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 24]
+        });
+        
+        const plazaMarker = L.marker([-25.10445, -65.53455], { icon: plazaIcon }).addTo(map);
+        plazaMarker.on('click', () => {
+             setIsSheetExpanded(true);
+             map.flyTo([-25.10445, -65.53455], 18);
+        });
+
+        mapInstanceRef.current = map;
+    }
+  }, [mapReady]);
+
+  // 3. ACTUALIZAR POSICIÓN USUARIO
+  useEffect(() => {
+      if (mapInstanceRef.current && markerRef.current) {
+          markerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+      }
+  }, [userLocation]);
+
+  // 4. SIMULACIÓN DE MOVIMIENTO
+  useEffect(() => {
+    let interval: number;
+    if (activeRoute && mapInstanceRef.current && window.L) {
+        let step = 0;
+        // Dibujar ruta en mapa
+        if (routeLayerRef.current) mapInstanceRef.current.removeLayer(routeLayerRef.current);
+        
+        const latLngs = activeRoute.path.map(p => [p.lat, p.lng]);
+        routeLayerRef.current = window.L.polyline(latLngs, { color: '#80ec13', weight: 6, opacity: 0.8 }).addTo(mapInstanceRef.current);
+        
+        // Ajustar vista a la ruta
+        mapInstanceRef.current.fitBounds(routeLayerRef.current.getBounds(), { padding: [50, 50] });
+
+        // Animar movimiento
+        interval = window.setInterval(() => {
+            step++;
+            if (step < activeRoute.path.length) {
+                setUserLocation(activeRoute.path[step]);
+            }
+        }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [activeRoute]);
+
+  const handleCalculateRoute = () => {
+      // Calcular ruta desde usuario (Sur) hacia la Plaza (Centro)
+      const route = calculateOfflineRoute(userLocation, { lat: -25.10445, lng: -65.53455 }, 'walking');
+      if (route) {
+          setActiveRoute(route);
+          setIsSheetExpanded(false);
+      } else {
+          alert('No se pudo calcular la ruta offline.');
+      }
   };
 
   const handleZoom = (delta: number) => {
-    setTransform(prev => ({
-      ...prev,
-      scale: Math.min(Math.max(prev.scale + delta, 0.5), 4)
-    }));
-  };
+      if(mapInstanceRef.current) {
+          mapInstanceRef.current.setZoom(mapInstanceRef.current.getZoom() + delta);
+      }
+  }
+
+  const handleRecenter = () => {
+      if(mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 17);
+      }
+  }
 
   return (
-    <div className="relative w-full h-screen bg-[#f2f0eb] dark:bg-[#0f0f0f] overflow-hidden font-display select-none">
+    <div className="relative w-full h-screen bg-gray-200 dark:bg-[#0f0f0f] overflow-hidden font-display select-none">
       
-      {/* --- MAP CONTAINER --- */}
-      <div 
-        className="w-full h-full origin-center cursor-grab active:cursor-grabbing touch-none will-change-transform"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        style={{ 
-          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-        }}
-      >
-        {/* Container Size for the vector map */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px]">
-          
-          {/* CHICOANA REALISTIC VECTOR MAP */}
-          <svg viewBox="0 0 1000 1000" className="w-full h-full" style={{ overflow: 'visible' }}>
-            
-            {/* 1. Base Ground (Barrio/Grid areas) */}
-            <rect x="-500" y="-500" width="2000" height="2000" fill="#f2f0eb" className="dark:fill-[#0f0f0f]" />
-            
-            {/* 2. Áreas Verdes (Campos alrededor) */}
-            <path d="M-200 0 Q 0 100 200 0 T 600 100 V 1000 H -200 Z" fill="#e3eed3" className="dark:fill-[#1c1c1e]" />
-            <path d="M-200 0 Q -100 -200 -200 -400 H 1200 V 0 Z" fill="#e3eed3" className="dark:fill-[#1c1c1e]" />
-
-            {/* 3. El Rio (Río Chicoana - Simulated Path) */}
-            <path d="M-100 600 C 100 580, 400 650, 900 600" fill="none" stroke="#aadaff" strokeWidth="25" strokeLinecap="round" className="dark:stroke-[#2c3e50]" />
-
-            {/* 4. CALLES DE CHICOANA (Grid System) */}
-            <g stroke="white" strokeWidth="12" strokeLinecap="square" className="dark:stroke-[#333]">
-               {/* Calles Horizontales (Oeste - Este) */}
-               <line x1="200" y1="200" x2="800" y2="200" /> {/* Calle Norte */}
-               <line x1="200" y1="300" x2="800" y2="300" /> 
-               <line x1="150" y1="400" x2="850" y2="400" strokeWidth="14" /> {/* Calle Principal (España/Libertad) */}
-               <line x1="200" y1="500" x2="800" y2="500" /> 
-               <line x1="250" y1="600" x2="750" y2="600" />
-
-               {/* Calles Verticales (Norte - Sur) */}
-               <line x1="300" y1="150" x2="300" y2="650" />
-               <line x1="400" y1="150" x2="400" y2="650" />
-               <line x1="500" y1="100" x2="500" y2="700" strokeWidth="14" /> {/* Calle Central Vertical */}
-               <line x1="600" y1="150" x2="600" y2="650" />
-               <line x1="700" y1="200" x2="700" y2="550" />
-            </g>
-
-            {/* 5. Ruta Provincial 33 (Av. Los Andes) - Diagonal Main Road */}
-            <path d="M450 -100 L 480 300 L 520 800" stroke="#ffffff" strokeWidth="22" fill="none" className="dark:stroke-[#444]" />
-            <path d="M450 -100 L 480 300 L 520 800" stroke="#fde68a" strokeWidth="10" fill="none" className="dark:stroke-[#555]" />
-
-            {/* 6. Plaza Martín Miguel de Güemes (Centro exacto del grid) */}
-            {/* Ubicada en la intersección central 500,400 */}
-            <rect x="440" y="340" width="120" height="120" rx="10" fill="#c7e6a7" className="dark:fill-[#385028]" />
-            
-            {/* Senderos internos plaza */}
-            <path d="M440 340 L 560 460 M 560 340 L 440 460" stroke="white" strokeWidth="2" opacity="0.5" />
-
-            {/* 7. Edificios Clave (Simulados) */}
-            <rect x="440" y="310" width="40" height="20" fill="#e5e7eb" className="dark:fill-[#444]" /> {/* Iglesia Norte */}
-            <rect x="570" y="350" width="30" height="50" fill="#e5e7eb" className="dark:fill-[#444]" /> {/* Municipalidad Este */}
-          </svg>
-
-          {/* --- MARKERS ON THE MAP --- */}
-          
-          {/* Plaza Principal Marker (Center of Green Square) */}
-          <div 
-            className="absolute left-[500px] top-[400px] -translate-x-1/2 -translate-y-full z-30 cursor-pointer hover:scale-110 transition-transform origin-bottom"
-            onClick={(e) => { e.stopPropagation(); navigate('/poi/plaza-principal'); }}
-          >
-             <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm mb-1 whitespace-nowrap border border-gray-100 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                <p className="text-[10px] font-bold text-gray-800">{t('map.poi_plaza')}</p>
-             </div>
-             <div className="w-10 h-10 mx-auto bg-primary rounded-full border-4 border-white shadow-lg flex items-center justify-center relative z-10">
-                <span className="material-symbols-outlined text-black text-lg filled">flag</span>
-             </div>
-             <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white mx-auto -mt-1 drop-shadow-sm"></div>
+      {/* --- MAP CONTAINER (Leaflet) --- */}
+      <div id="map-container" ref={mapContainerRef} className="absolute inset-0 z-0"></div>
+      
+      {!mapReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-900 z-10">
+              <span className="material-symbols-outlined animate-spin text-primary text-4xl">public</span>
           </div>
-
-          {/* Iglesia San Pablo (North of Plaza) */}
-          <div className="absolute left-[460px] top-[320px] -translate-x-1/2 -translate-y-1/2 z-20">
-             <div className="w-8 h-8 bg-white rounded-full border border-gray-100 shadow-md flex items-center justify-center">
-                <span className="material-symbols-outlined text-gray-600 text-sm">church</span>
-             </div>
-          </div>
-
-          {/* Photo Spot (West) */}
-          <div className="absolute left-[300px] top-[400px] -translate-x-1/2 -translate-y-1/2 z-20">
-             <div className="w-8 h-8 bg-purple-100 rounded-full border-2 border-white shadow-md flex items-center justify-center">
-                <span className="material-symbols-outlined text-purple-600 text-sm">photo_camera</span>
-             </div>
-          </div>
-
-          {/* Restaurant (South) */}
-          <div className="absolute left-[500px] top-[550px] -translate-x-1/2 -translate-y-1/2 z-20">
-             <div className="w-8 h-8 bg-orange-100 rounded-full border-2 border-white shadow-md flex items-center justify-center">
-                <span className="material-symbols-outlined text-orange-600 text-sm">restaurant</span>
-             </div>
-          </div>
-
-          {/* User Location (South on RP33) */}
-          <div className="absolute left-[520px] top-[600px] z-40 transform -translate-x-1/2 -translate-y-1/2">
-             <div className="w-24 h-24 bg-blue-500/10 rounded-full animate-ping absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-             {/* Cono de visión (Direction) */}
-             <div className="absolute top-1/2 left-1/2 w-[100px] h-[100px] bg-gradient-to-t from-blue-500/20 to-transparent transform -translate-x-1/2 -translate-y-full -rotate-12 origin-bottom clip-path-triangle"></div>
-             <div className="w-5 h-5 bg-blue-500 border-[3px] border-white rounded-full shadow-lg relative z-10"></div>
-          </div>
-
-          {/* Street Labels */}
-          <div className="absolute left-[530px] top-[700px] -rotate-75 text-[8px] font-bold text-gray-400 uppercase tracking-widest pointer-events-none">
-             Av. Los Andes
-          </div>
-          <div className="absolute left-[700px] top-[410px] text-[8px] font-bold text-gray-400 uppercase tracking-widest pointer-events-none">
-             Calle España
-          </div>
-
-        </div>
-      </div>
-
+      )}
 
       {/* --- UI CONTROLS --- */}
       
       {/* Top Pills */}
       <div className="absolute top-0 left-0 w-full p-4 pt-safe-top z-40 pointer-events-none">
          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pointer-events-auto">
-            <button className="flex items-center gap-2 bg-white dark:bg-surface-dark px-4 py-2 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 active:scale-95 transition-transform">
-               <span className="material-symbols-outlined text-base text-gray-500">wifi_off</span>
-               <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{t('map.offline_pill')}</span>
+            <button className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-sm border active:scale-95 transition-transform ${isOfflineReady ? 'bg-green-100 border-green-200' : 'bg-white dark:bg-surface-dark border-gray-100 dark:border-gray-700'}`}>
+               <span className={`material-symbols-outlined text-base ${isOfflineReady ? 'text-green-600' : 'text-gray-500'}`}>{isOfflineReady ? 'check_circle' : 'wifi_off'}</span>
+               <span className={`text-xs font-bold ${isOfflineReady ? 'text-green-800' : 'text-gray-700 dark:text-gray-200'}`}>{isOfflineReady ? 'Mapa Offline' : t('map.offline_pill')}</span>
             </button>
              <button className="flex items-center gap-2 bg-white dark:bg-surface-dark px-4 py-2 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 active:scale-95 transition-transform">
                <span className="material-symbols-outlined text-base text-green-600">my_location</span>
@@ -179,17 +184,17 @@ const MapOverview: React.FC = () => {
          </div>
       </div>
 
-      {/* Right Side Controls (Zoom & Recenter) - Matches Image 1 Style */}
+      {/* Right Side Controls (Zoom & Recenter) */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-4">
         <div className="bg-white dark:bg-surface-dark rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col overflow-hidden">
           <button 
-            onClick={() => handleZoom(0.5)}
+            onClick={() => handleZoom(1)}
             className="w-11 h-11 flex items-center justify-center text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 transition-colors border-b border-gray-100 dark:border-gray-700"
           >
             <span className="material-symbols-outlined text-xl">add</span>
           </button>
           <button 
-            onClick={() => handleZoom(-0.5)}
+            onClick={() => handleZoom(-1)}
             className="w-11 h-11 flex items-center justify-center text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 transition-colors"
           >
             <span className="material-symbols-outlined text-xl">remove</span>
@@ -198,14 +203,14 @@ const MapOverview: React.FC = () => {
 
         {/* Recenter Button */}
         <button 
-           onClick={() => setTransform({ x: -100, y: -100, scale: 1.2 })}
+           onClick={handleRecenter}
            className="w-12 h-12 bg-primary rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center text-black active:scale-90 transition-transform"
          >
             <span className="material-symbols-outlined text-2xl">crosshairs_gps</span>
          </button>
       </div>
 
-      {/* --- BOTTOM SHEET (Refined to match Image 1 Clean Style) --- */}
+      {/* --- BOTTOM SHEET (UI Original Mantenida) --- */}
       <div className={`absolute left-4 right-4 z-40 transition-all duration-500 cubic-bezier(0.19, 1, 0.22, 1) ${isSheetExpanded ? 'bottom-4 top-[50%]' : 'bottom-20 h-auto'}`}>
          <div className="bg-white dark:bg-surface-dark rounded-[2rem] p-5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-white/50 dark:border-gray-800 h-full flex flex-col">
             
@@ -250,6 +255,23 @@ const MapOverview: React.FC = () => {
                   {t('map.plaza_desc')}
                </p>
                
+               {/* Quick Buttons */}
+               <div className="flex gap-3 mb-6">
+                   <button 
+                     onClick={handleCalculateRoute}
+                     className="flex-1 bg-primary text-black py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                   >
+                       <span className="material-symbols-outlined">directions</span>
+                       {t('navigation.title')}
+                   </button>
+                   <button 
+                     onClick={() => navigate('/poi/plaza-principal')}
+                     className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                   >
+                       {t('map.view_details')}
+                   </button>
+               </div>
+
                <h4 className="text-xs font-bold text-gray-900 dark:text-white uppercase mb-3">{t('map.services')}</h4>
                <div className="grid grid-cols-3 gap-3 mb-6">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex flex-col items-center gap-2 border border-gray-100 dark:border-gray-700">
@@ -265,13 +287,6 @@ const MapOverview: React.FC = () => {
                      <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{t('map.free')}</span>
                   </div>
                </div>
-
-               <button 
-                 onClick={() => navigate('/poi/plaza-principal')}
-                 className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-xl font-bold text-sm shadow-lg active:scale-[0.98] transition-transform"
-               >
-                 {t('map.view_details')}
-               </button>
             </div>
          </div>
       </div>

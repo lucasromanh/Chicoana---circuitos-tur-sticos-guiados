@@ -42,7 +42,10 @@ export const UI_TRANSLATIONS: Record<LanguageCode, any> = {
         audio_label: 'Audio',
         ready: 'Listo',
         offline_req: 'Se requieren datos offline',
-        start_point: 'Inicio'
+        start_point: 'Inicio',
+        route_map: 'Mapa del Recorrido',
+        poi_type: 'Punto de Interés',
+        visited: 'Visitado'
     },
     poi: {
         founded: 'Fundado',

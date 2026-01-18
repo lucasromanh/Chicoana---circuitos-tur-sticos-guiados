@@ -11,7 +11,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const BottomNavNative: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
-  const { t } = useUser();
+  const { t, settings } = useUser();
 
   // Hide bottom nav on Splash and Active Navigation
   if (route.name === 'Splash' || route.name === 'ActiveNavigation') return null;
@@ -19,7 +19,7 @@ const BottomNavNative: React.FC = () => {
   const isActive = (routeName: keyof RootStackParamList) => route.name === routeName;
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-gray-100 dark:border-gray-800 pt-2 px-2 shadow-lg">
+    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: settings.darkMode ? '#18181b' : '#ffffff', borderTopWidth: 1, borderTopColor: settings.darkMode ? '#27272a' : '#f3f4f6', paddingTop: 8, paddingHorizontal: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
       <View className="flex-row items-end justify-around pb-3">
         <TouchableOpacity 
           onPress={() => navigation.navigate('Home')} 
@@ -28,7 +28,7 @@ const BottomNavNative: React.FC = () => {
           <View className={`flex items-center justify-center w-12 h-8 rounded-full ${isActive('Home') ? 'bg-primary/20' : ''}`}>
             <MaterialIcons name="home" size={24} color={isActive('Home') ? '#10b981' : '#9ca3af'} />
           </View>
-          <Text className={`text-[10px] ${isActive('Home') ? 'text-primary font-bold' : 'text-gray-400'}`}>
+          <Text style={{ fontSize: 10, color: isActive('Home') ? '#10b981' : (settings.darkMode ? '#9ca3af' : '#6b7280'), fontWeight: isActive('Home') ? 'bold' : 'normal' }}>
             {t('nav.home')}
           </Text>
         </TouchableOpacity>
@@ -40,7 +40,7 @@ const BottomNavNative: React.FC = () => {
           <View className={`flex items-center justify-center w-12 h-8 rounded-full ${isActive('MapOverview') ? 'bg-primary/20' : ''}`}>
             <MaterialIcons name="map" size={24} color={isActive('MapOverview') ? '#10b981' : '#9ca3af'} />
           </View>
-          <Text className={`text-[10px] ${isActive('MapOverview') ? 'text-primary font-bold' : 'text-gray-400'}`}>
+          <Text style={{ fontSize: 10, color: isActive('MapOverview') ? '#10b981' : (settings.darkMode ? '#9ca3af' : '#6b7280'), fontWeight: isActive('MapOverview') ? 'bold' : 'normal' }}>
             {t('nav.map')}
           </Text>
         </TouchableOpacity>
@@ -52,7 +52,7 @@ const BottomNavNative: React.FC = () => {
           <View className={`flex items-center justify-center w-12 h-8 rounded-full ${isActive('Downloads') ? 'bg-primary/20' : ''}`}>
             <MaterialIcons name="cloud-download" size={24} color={isActive('Downloads') ? '#10b981' : '#9ca3af'} />
           </View>
-          <Text className={`text-[10px] ${isActive('Downloads') ? 'text-primary font-bold' : 'text-gray-400'}`}>
+          <Text style={{ fontSize: 10, color: isActive('Downloads') ? '#10b981' : (settings.darkMode ? '#9ca3af' : '#6b7280'), fontWeight: isActive('Downloads') ? 'bold' : 'normal' }}>
             {t('nav.offline')}
           </Text>
         </TouchableOpacity>
@@ -64,7 +64,7 @@ const BottomNavNative: React.FC = () => {
           <View className={`flex items-center justify-center w-12 h-8 rounded-full ${isActive('Settings') ? 'bg-primary/20' : ''}`}>
             <MaterialIcons name="settings" size={24} color={isActive('Settings') ? '#10b981' : '#9ca3af'} />
           </View>
-          <Text className={`text-[10px] ${isActive('Settings') ? 'text-primary font-bold' : 'text-gray-400'}`}>
+          <Text style={{ fontSize: 10, color: isActive('Settings') ? '#10b981' : (settings.darkMode ? '#9ca3af' : '#6b7280'), fontWeight: isActive('Settings') ? 'bold' : 'normal' }}>
             {t('nav.settings')}
           </Text>
         </TouchableOpacity>

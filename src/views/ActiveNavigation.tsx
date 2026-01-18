@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Platform, Alert, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useNavigate, useLocation } from '@/navigation/routerAdapter';
+import { useNavigate, useParams } from '@/navigation/routerAdapter';
 import { CIRCUITS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
 import { calculateOfflineRoute, Coordinate, RouteResult } from '@/services/map/geoEngine';
@@ -12,13 +12,19 @@ const { width, height } = Dimensions.get('window');
 
 const ActiveNavigation: React.FC = () => {
    const navigate = useNavigate();
-   const location = useLocation();
+   const params = useParams<{ circuitId?: string }>();
    // @ts-ignore
    const { t, circuits, downloadedCircuits, simulateDownload } = useUser();
 
-   const state = location.state as { circuitId: string } | null;
-   const activeCircuitId = state?.circuitId || 'historic-center';
+   // Leer circuitId de los parámetros de React Navigation
+   const activeCircuitId = params.circuitId || 'historic-center';
+   
+   console.log('🗺️ ActiveNavigation - Params recibidos:', params);
+   console.log('🗺️ ActiveNavigation - circuitId:', activeCircuitId);
+   
    const activeCircuit = circuits.find((c: any) => c.id === activeCircuitId) || CIRCUITS[0];
+   
+   console.log('🗺️ Circuito activo:', activeCircuit?.title, activeCircuit?.id);
 
    const isCarMode = activeCircuit ? parseInt(activeCircuit.distance) > 10 : false;
    const isMapDownloaded = downloadedCircuits.includes('chicoana-map-pack');
@@ -26,6 +32,7 @@ const ActiveNavigation: React.FC = () => {
    const [distance, setDistance] = useState(isCarMode ? 5000 : 50);
    const [isMuted, setIsMuted] = useState(false);
    const [isDownloadingMap, setIsDownloadingMap] = useState(false);
+   const [isCardExpanded, setIsCardExpanded] = useState(true);
 
    // --- MAP STATE ---
    const mapRef = useRef<MapView>(null);
@@ -36,50 +43,85 @@ const ActiveNavigation: React.FC = () => {
    const [userLocation, setUserLocation] = useState<Coordinate>({ lat: -25.10600, lng: -65.53455 });
    const [isFollowing, setIsFollowing] = useState(true);
 
-   // 1. CALCULAR RUTA DEMO
+   // 1. GENERAR RUTA REALISTA - Actualizar cuando cambie el circuito
    useEffect(() => {
-      const route = calculateOfflineRoute(
-         { lat: -25.10600, lng: -65.53455 },
-         { lat: -25.10445, lng: -65.53455 },
-         'walking'
-      );
+      if (!activeCircuit || !activeCircuit.pois || activeCircuit.pois.length === 0) return;
 
-      if (route) {
-         setActiveRoute(route);
+      // Generar una ruta que sigue las calles entre los POIs
+      const routePath: Coordinate[] = [];
+      
+      activeCircuit.pois.forEach((poi: any, index: number) => {
+         const poiCoord = {
+            lat: poi.lat || (-25.10600 + (index * 0.002)),
+            lng: poi.lng || (-65.53455 + (index * 0.002))
+         };
+         
+         // Si no es el primer POI, agregar puntos intermedios simulando calles
+         if (index > 0) {
+            const prevPoi = activeCircuit.pois[index - 1];
+            const prevCoord = {
+               lat: prevPoi.lat || (-25.10600 + ((index - 1) * 0.002)),
+               lng: prevPoi.lng || (-65.53455 + ((index - 1) * 0.002))
+            };
+            
+            // Crear ruta en L (Manhattan routing) en lugar de línea recta
+            const midLat = prevCoord.lat;
+            const midLng = poiCoord.lng;
+            
+            // Punto intermedio para simular doblar en una esquina
+            routePath.push({ lat: midLat, lng: midLng });
+         }
+         
+         routePath.push(poiCoord);
+      });
+
+      // Crear el objeto RouteResult
+      const route: RouteResult = {
+         path: routePath,
+         distance: activeCircuit.pois.length * 200, // Estimación
+         duration: activeCircuit.pois.length * 5, // minutos
+         instructions: []
+      };
+
+      setActiveRoute(route);
+      setUserLocation(routePath[0]);
+      
+      // Centrar el mapa mostrando todos los POIs
+      if (mapRef.current && mapReady && activeCircuit.pois.length > 0) {
+         const lats = activeCircuit.pois.map((p: any) => p.lat || -25.10600);
+         const lngs = activeCircuit.pois.map((p: any) => p.lng || -65.53455);
+         
+         const minLat = Math.min(...lats);
+         const maxLat = Math.max(...lats);
+         const minLng = Math.min(...lngs);
+         const maxLng = Math.max(...lngs);
+         
+         mapRef.current.animateToRegion({
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLng + maxLng) / 2,
+            latitudeDelta: (maxLat - minLat) * 1.5,
+            longitudeDelta: (maxLng - minLng) * 1.5,
+         }, 500);
       }
-   }, []);
+   }, [activeCircuitId, activeCircuit, mapReady]);
 
-   // 2. SIMULACIÓN DE MOVIMIENTO
+   // 2. SIMULACIÓN DE MOVIMIENTO (DESHABILITADA - se activaría con GPS real)
+   // useEffect(() => {
+   //    if (!activeRoute || !mapReady) return;
+   //    // Simulación de movimiento automático deshabilitada
+   // }, [activeRoute, mapReady, isFollowing]);
+
+   // Centrar mapa en posición inicial
    useEffect(() => {
-      if (!activeRoute || !mapReady) return;
-
-      let currentIndex = 0;
-      const path = activeRoute.path;
-
-      const interval = setInterval(() => {
-         if (currentIndex >= path.length - 1) {
-            currentIndex = 0;
-            setDistance(50);
-         }
-
-         const currentPos = path[currentIndex];
-         setUserLocation(currentPos);
-
-         if (isFollowing && mapRef.current) {
-            mapRef.current.animateCamera({
-               center: { latitude: currentPos.lat, longitude: currentPos.lng },
-               heading: 0,
-               pitch: 45,
-               zoom: 19,
-            }, { duration: 1000 });
-         }
-
-         setDistance(prev => Math.max(0, prev - 2));
-         currentIndex++;
-      }, 1000);
-
-      return () => clearInterval(interval);
-   }, [activeRoute, mapReady, isFollowing]);
+      if (mapReady && isFollowing && mapRef.current) {
+         mapRef.current.animateToRegion({
+            latitude: userLocation.lat,
+            longitude: userLocation.lng,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+         }, 500);
+      }
+   }, [mapReady]);
 
    const handleRecenter = () => {
       setIsFollowing(true);
@@ -100,24 +142,54 @@ const ActiveNavigation: React.FC = () => {
    };
 
    return (
-      <View className="flex-1 bg-gray-200 dark:bg-gray-900">
+      <View style={{ flex: 1, backgroundColor: '#e5e7eb' }}>
 
          {/* MAPA NATIVO */}
-         <View className="absolute inset-0 z-0">
-            <MapView
-               ref={mapRef}
-               provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
-               style={{ flex: 1 }}
-               onMapReady={() => setMapReady(true)}
-               initialRegion={{
-                  latitude: -25.10600,
-                  longitude: -65.53455,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-               }}
-               showsUserLocation={false}
-               onTouchStart={() => setIsFollowing(false)}
-            >
+         <MapView
+            ref={mapRef}
+            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onMapReady={() => setMapReady(true)}
+            initialRegion={{
+               latitude: -25.10600,
+               longitude: -65.53455,
+               latitudeDelta: 0.005,
+               longitudeDelta: 0.005,
+            }}
+            showsUserLocation={false}
+            onTouchStart={() => setIsFollowing(false)}
+         >
+            {/* Marcadores de POIs del circuito */}
+            {activeCircuit?.pois && activeCircuit.pois.map((poi: any, index: number) => {
+               const lat = poi.lat || (-25.10600 + (index * 0.002));
+               const lng = poi.lng || (-65.53455 + (index * 0.002));
+               return (
+                  <Marker
+                     key={poi.id}
+                     coordinate={{ latitude: lat, longitude: lng }}
+                     title={poi.title}
+                     description={poi.description}
+                  >
+                     <View style={{ backgroundColor: '#10b981', width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'white' }}>
+                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{index + 1}</Text>
+                     </View>
+                  </Marker>
+               );
+            })}
+
+            {/* Ruta entre POIs */}
+            {activeCircuit?.pois && activeCircuit.pois.length > 1 && (
+               <Polyline
+                  coordinates={activeCircuit.pois.map((poi: any, index: number) => ({
+                     latitude: poi.lat || (-25.10600 + (index * 0.002)),
+                     longitude: poi.lng || (-65.53455 + (index * 0.002))
+                  }))}
+                  strokeColor="#10b981"
+                  strokeWidth={4}
+               />
+            )}
+
+            {/* Ruta calculada (si existe) */}
                {/* Ruta Sombra */}
                {activeRoute && (
                   <Polyline
@@ -147,9 +219,9 @@ const ActiveNavigation: React.FC = () => {
 
             <LinearGradient
                colors={['rgba(255,255,255,0.6)', 'transparent', 'rgba(255,255,255,0.4)']}
-               className="absolute inset-0 pointer-events-none"
+               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+               pointerEvents="none"
             />
-         </View>
 
          {/* UI OVERLAY */}
 
@@ -207,76 +279,82 @@ const ActiveNavigation: React.FC = () => {
 
          {/* 3. Bottom Card */}
          <View className="absolute bottom-6 left-3 right-3 z-30">
-            <View className="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl p-5 border border-gray-100 dark:border-gray-800">
+            <View className="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-800">
 
-               <View className="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded-full self-center mb-4" />
-
-               {/* Instruction Block */}
-               <View className="flex-row items-center gap-4 mb-6">
-                  <View className="bg-primary w-[4.5rem] h-[4.5rem] rounded-2xl items-center justify-center shadow-lg shadow-primary/20">
-                     <MaterialIcons name="turn-right" size={40} color="black" />
-                  </View>
-                  <View className="flex-1">
-                     <Text className="text-xl font-bold text-gray-900 dark:text-white leading-tight mb-1">{t('navigation.turn_right')}</Text>
-                     <Text className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {t('navigation.in')} <Text className="text-gray-900 dark:text-white font-bold">Calle España</Text>
-                     </Text>
-                     <View className="mt-1.5 flex-row items-center self-start gap-1.5 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-lg">
-                        <MaterialIcons name="straighten" size={14} color="gray" />
-                        <Text className="text-xs font-bold text-gray-700 dark:text-gray-300">{Math.round(distance)}{t('navigation.meters')}</Text>
-                     </View>
-                  </View>
-               </View>
-
-               <View className="h-px w-full bg-gray-100 dark:bg-gray-800 mb-6" />
-
-               {/* Steps List */}
-               <View className="gap-5 mb-8 pl-1">
+               {/* Instruction Block - Ahora es tocable para expandir/contraer */}
+               <TouchableOpacity 
+                  onPress={() => setIsCardExpanded(!isCardExpanded)}
+                  activeOpacity={0.7}
+                  className="p-5"
+               >
+                  <View className="w-8 h-1 bg-gray-200 dark:bg-gray-700 rounded-full self-center mb-4" />
+                  
                   <View className="flex-row items-center gap-4">
-                     <View className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center border border-gray-100 dark:border-gray-700">
-                        <MaterialIcons name="arrow-upward" size={16} color="#9ca3af" />
+                     <View className="bg-primary w-[4.5rem] h-[4.5rem] rounded-2xl items-center justify-center shadow-lg shadow-primary/20">
+                        <MaterialIcons name="directions" size={40} color="black" />
                      </View>
-                     <View className="flex-1 border-b border-gray-50 dark:border-gray-800 pb-2">
-                        <Text className="text-xs font-bold text-gray-900 dark:text-white">{t('navigation.go_straight')} 200{t('navigation.meters')}</Text>
-                        <Text className="text-[10px] text-gray-400">{t('navigation.continue_on')} Calle España</Text>
+                     <View className="flex-1">
+                        <Text className="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1">
+                           {activeCircuit?.title || 'Circuito Histórico'}
+                        </Text>
+                        <Text className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                           {activeCircuit?.distance || '3.2 km'} • {activeCircuit?.duration || '45 min'}
+                        </Text>
+                        <View className="mt-1.5 flex-row items-center self-start gap-1.5 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-lg">
+                           <MaterialIcons name="location-on" size={14} color="#10b981" />
+                           <Text className="text-xs font-bold text-gray-700 dark:text-gray-300">{activeCircuit?.pois?.length || 0} puntos de interés</Text>
+                        </View>
+                     </View>
+                     <MaterialIcons name={isCardExpanded ? "expand-more" : "expand-less"} size={24} color="#9ca3af" />
+                  </View>
+               </TouchableOpacity>
+
+               {isCardExpanded && (
+                  <View className="px-5 pb-5">
+                     <View className="h-px w-full bg-gray-100 dark:bg-gray-800 mb-4" />
+
+                     <Text className="text-xs font-bold text-gray-500 uppercase mb-3">Puntos del recorrido</Text>
+
+                     {/* Steps List - Datos reales del circuito */}
+                     <View className="gap-3 mb-6">
+                        {activeCircuit?.pois && activeCircuit.pois.length > 0 ? (
+                           activeCircuit.pois.slice(0, 3).map((poi: any, index: number) => (
+                              <View key={poi.id} className="flex-row items-center gap-3">
+                                 <View className="w-8 h-8 rounded-full bg-primary/20 items-center justify-center border border-primary/30">
+                                    <Text className="text-xs font-bold text-primary-dark">{index + 1}</Text>
+                                 </View>
+                                 <View className="flex-1 border-b border-gray-50 dark:border-gray-800 pb-2">
+                                    <Text className="text-xs font-bold text-gray-900 dark:text-white" numberOfLines={1}>{poi.title}</Text>
+                                    <Text className="text-[10px] text-gray-400">{poi.distanceFromStart}</Text>
+                                 </View>
+                              </View>
+                           ))
+                        ) : (
+                           <View className="flex-row items-center gap-3">
+                              <View className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center">
+                                 <MaterialIcons name="info" size={16} color="#9ca3af" />
+                              </View>
+                              <Text className="text-xs text-gray-400">Selecciona un circuito para ver los puntos</Text>
+                           </View>
+                        )}
+                     </View>
+
+                     {/* Buttons */}
+                     <View className="flex-row gap-3">
+                        <TouchableOpacity className="flex-1 py-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl items-center justify-center flex-row gap-2">
+                           <MaterialIcons name="refresh" size={18} color="gray" />
+                           <Text className="font-bold text-gray-700 dark:text-gray-300 text-xs">{t('navigation.recalculate')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                           onPress={() => navigate('/home')}
+                           className="flex-1 py-3.5 bg-red-50 dark:bg-red-900/10 rounded-xl items-center justify-center flex-row gap-2"
+                        >
+                           <MaterialIcons name="flag" size={18} color="#ef4444" />
+                           <Text className="font-bold text-red-500 text-xs">{t('navigation.finish')}</Text>
+                        </TouchableOpacity>
                      </View>
                   </View>
-
-                  <View className="flex-row items-center gap-4">
-                     <View className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center border border-gray-100 dark:border-gray-700">
-                        <MaterialIcons name="photo-camera" size={16} color="#4b5563" />
-                     </View>
-                     <View className="flex-1 border-b border-gray-50 dark:border-gray-800 pb-2">
-                        <Text className="text-xs font-bold text-gray-900 dark:text-white">Plaza Martín Miguel de Güemes</Text>
-                        <Text className="text-[10px] text-gray-400">{t('navigation.poi_nearby')} • Foto</Text>
-                     </View>
-                  </View>
-
-                  <View className="flex-row items-center gap-4 opacity-60">
-                     <View className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 items-center justify-center border border-gray-100 dark:border-gray-700">
-                        <MaterialIcons name="church" size={16} color="#9ca3af" />
-                     </View>
-                     <View>
-                        <Text className="text-xs font-bold text-gray-900 dark:text-white">Iglesia San Pablo</Text>
-                        <Text className="text-[10px] text-gray-400">{t('navigation.dest_final')}</Text>
-                     </View>
-                  </View>
-               </View>
-
-               {/* Buttons */}
-               <View className="flex-row gap-3">
-                  <TouchableOpacity className="flex-1 py-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl items-center justify-center flex-row gap-2">
-                     <MaterialIcons name="refresh" size={18} color="gray" />
-                     <Text className="font-bold text-gray-700 dark:text-gray-300 text-xs">{t('navigation.recalculate')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                     onPress={() => navigate('/home')}
-                     className="flex-1 py-3.5 bg-red-50 dark:bg-red-900/10 rounded-xl items-center justify-center flex-row gap-2"
-                  >
-                     <MaterialIcons name="flag" size={18} color="#ef4444" />
-                     <Text className="font-bold text-red-500 text-xs">{t('navigation.finish')}</Text>
-                  </TouchableOpacity>
-               </View>
+               )}
             </View>
          </View>
 

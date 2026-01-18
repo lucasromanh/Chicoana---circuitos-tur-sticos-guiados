@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Dimensions, ImageBackground } from 'react-native';
 import { useNavigate } from '@/navigation/routerAdapter';
 import { AVATARS } from '@/constants';
 import { useUser } from '@/contexts/UserContext';
@@ -11,7 +11,7 @@ const { width } = Dimensions.get('window');
 const Home: React.FC = () => {
   const navigate = useNavigate();
   // @ts-ignore
-  const { userName, isProfileComplete, userAvatarId, favorites, toggleFavorite, downloadedCircuits, t, circuits } = useUser();
+  const { userName, isProfileComplete, userAvatarId, favorites, toggleFavorite, downloadedCircuits, t, circuits, settings } = useUser();
 
   // States for functionality
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,8 +63,10 @@ const Home: React.FC = () => {
     { id: 'Cultura', label: t('home.cats.cult') }
   ];
 
+  console.log('🎨 Renderizando Home con imagen de fondo');
+
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-zinc-950">
+    <View style={{ flex: 1, backgroundColor: settings.darkMode ? '#09090b' : '#f9fafb' }}>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 48, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
@@ -77,7 +79,7 @@ const Home: React.FC = () => {
               </View>
               <View>
                 <Text className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{t('home.welcome')}</Text>
-                <Text className="text-lg font-bold text-gray-900 dark:text-white leading-none">
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827', lineHeight: 18 }}>
                   {isProfileComplete ? `${t('home.hello')}, ${userName}` : `${t('home.hello')}, ${t('home.traveler')}`}
                 </Text>
               </View>
@@ -85,7 +87,20 @@ const Home: React.FC = () => {
             <View className="relative">
               <TouchableOpacity
                 onPress={() => setShowNotifications(!showNotifications)}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-gray-100 dark:border-gray-800 items-center justify-center shadow-sm"
+                style={{ 
+                  width: 40, 
+                  height: 40, 
+                  borderRadius: 20, 
+                  backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                  borderWidth: 1,
+                  borderColor: settings.darkMode ? '#27272a' : '#f3f4f6',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2
+                }}
               >
                 <MaterialIcons name="notifications" size={20} color="gray" />
                 <View className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
@@ -93,12 +108,27 @@ const Home: React.FC = () => {
 
               {/* Notifications Dropdown (Simulated) */}
               {showNotifications && (
-                <View className="absolute right-0 top-12 w-64 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 z-50 p-2">
+                <View style={{ 
+                  position: 'absolute', 
+                  right: 0, 
+                  top: 48, 
+                  width: 256, 
+                  backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                  borderRadius: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  borderWidth: 1,
+                  borderColor: settings.darkMode ? '#27272a' : '#f3f4f6',
+                  zIndex: 50,
+                  padding: 8
+                }}>
                   <Text className="text-xs font-bold text-gray-400 uppercase mb-2 px-2">{t('home.notif_title')}</Text>
                   <View className="flex-row gap-2 p-2 bg-gray-50/50 dark:bg-white/5 rounded-lg">
                     <MaterialIcons name="event" size={16} color="#80EC13" />
                     <View>
-                      <Text className="text-xs font-bold dark:text-white">{t('home.notif_event')}</Text>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('home.notif_event')}</Text>
                       <Text className="text-[10px] text-gray-500">{t('home.notif_desc')}</Text>
                     </View>
                   </View>
@@ -173,57 +203,90 @@ const Home: React.FC = () => {
               const isDownloaded = downloadedCircuits.includes(circuit.id);
 
               return (
-                <TouchableOpacity
+                <View
                   key={circuit.id}
-                  onPress={() => navigate(`/circuit/${circuit.id}`)}
-                  activeOpacity={0.9}
-                  className="group bg-white dark:bg-zinc-900 rounded-[2rem] p-3 shadow-sm border border-gray-100 dark:border-gray-800"
+                  style={{
+                    backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                    borderRadius: 32,
+                    padding: 12,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    borderWidth: 1,
+                    borderColor: settings.darkMode ? '#27272a' : '#f3f4f6'
+                  }}
                 >
-                  <View className="aspect-[4/3] relative rounded-[1.5rem] overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
-                    <Image
-                      source={{ uri: circuit.image }}
-                      style={{ width: '100%', height: '100%' }}
-                      resizeMode="cover"
-                    />
+                  <TouchableOpacity
+                    onPress={() => {
+                      console.log('🏠 Home - Navegando a circuito:', circuit.id, circuit.title);
+                      navigate(`/circuit/${circuit.id}`);
+                    }}
+                    activeOpacity={0.9}
+                  >
+                    <View className="aspect-[4/3] relative rounded-[1.5rem] overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
+                      <Image
+                        source={{ uri: circuit.image }}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                        onError={(e) => console.log('Error cargando imagen:', circuit.image, e.nativeEvent.error)}
+                        onLoad={() => console.log('Imagen cargada:', circuit.image)}
+                      />
 
-                    {/* Favorite Button */}
-                    <View className="absolute top-3 right-3">
+                      {/* Favorite Button */}
                       <TouchableOpacity
-                        onPress={() => toggleFavorite(circuit.id)}
+                        onPress={() => {
+                          console.log('Botón favorito presionado, circuit id:', circuit.id);
+                          toggleFavorite(circuit.id);
+                        }}
                         activeOpacity={0.7}
-                        className={`w-8 h-8 rounded-full items-center justify-center shadow-sm ${isFav ? 'bg-red-500' : 'bg-white/30'}`}
+                        style={{
+                          position: 'absolute',
+                          top: 12,
+                          right: 12,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isFav ? '#ef4444' : 'rgba(255, 255, 255, 0.3)',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                        }}
                       >
                         <MaterialIcons name={isFav ? "favorite" : "favorite-border"} size={18} color="white" />
                       </TouchableOpacity>
+
+                      {isDownloaded && (
+                        <View className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg flex-row items-center gap-1">
+                          <MaterialIcons name="check-circle" size={10} color="#80EC13" />
+                          <Text className="text-white text-[10px] font-bold">Offline</Text>
+                        </View>
+                      )}
                     </View>
 
-                    {isDownloaded && (
-                      <View className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg flex-row items-center gap-1">
-                        <MaterialIcons name="check-circle" size={10} color="#80EC13" />
-                        <Text className="text-white text-[10px] font-bold">Offline</Text>
+                    <View className="px-1">
+                      <Text style={{ fontWeight: 'bold', fontSize: 18, color: settings.darkMode ? '#ffffff' : '#111827', lineHeight: 22, marginBottom: 4 }}>{circuit.title}</Text>
+                      <View className="flex-row items-center gap-4 mb-3">
+                        <View className="flex-row items-center gap-1">
+                          <MaterialIcons name="hiking" size={14} color="gray" />
+                          <Text className="text-xs text-gray-500 dark:text-gray-400 font-medium">{circuit.distance} {t('circuit.distance')}</Text>
+                        </View>
+                        <View className="flex-row items-center gap-1">
+                          <MaterialIcons name="schedule" size={14} color="gray" />
+                          <Text className="text-xs text-gray-500 dark:text-gray-400 font-medium">{circuit.duration} {t('circuit.duration')}</Text>
+                        </View>
                       </View>
-                    )}
-                  </View>
 
-                  <View className="px-1">
-                    <Text className="font-bold text-lg text-gray-900 dark:text-white leading-tight mb-1">{circuit.title}</Text>
-                    <View className="flex-row items-center gap-4 mb-3">
-                      <View className="flex-row items-center gap-1">
-                        <MaterialIcons name="hiking" size={14} color="gray" />
-                        <Text className="text-xs text-gray-500 dark:text-gray-400 font-medium">{circuit.distance} {t('circuit.distance')}</Text>
-                      </View>
-                      <View className="flex-row items-center gap-1">
-                        <MaterialIcons name="schedule" size={14} color="gray" />
-                        <Text className="text-xs text-gray-500 dark:text-gray-400 font-medium">{circuit.duration} {t('circuit.duration')}</Text>
+                      <View className="w-full py-3 bg-[#e8fcc2] dark:bg-primary/20 rounded-xl flex-row items-center justify-center gap-1">
+                        <Text className="text-gray-900 dark:text-white text-xs font-bold">{t('circuit.details')}</Text>
+                        <MaterialIcons name="arrow-forward" size={14} color="black" />
                       </View>
                     </View>
-
-                    <View className="w-full py-3 bg-[#e8fcc2] dark:bg-primary/20 rounded-xl flex-row items-center justify-center gap-1">
-                      <Text className="text-gray-900 dark:text-white text-xs font-bold">{t('circuit.details')}</Text>
-                      <MaterialIcons name="arrow-forward" size={14} color="black" />
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </View>
               );
             })
           ) : (

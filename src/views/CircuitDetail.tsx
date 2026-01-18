@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Platform, ActivityIndicator, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { useParams, useNavigate } from '@/navigation/routerAdapter';
 import { useUser } from '@/contexts/UserContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 
 const { width } = Dimensions.get('window');
 
@@ -11,11 +12,15 @@ const CircuitDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   // @ts-ignore
-  const { favorites, toggleFavorite, downloadedCircuits, simulateDownload, visitedPois, t, circuits } = useUser();
+  const { favorites, toggleFavorite, downloadedCircuits, simulateDownload, visitedPois, t, circuits, settings } = useUser();
   const [isDownloading, setIsDownloading] = useState(false);
-  const colorScheme = useColorScheme();
 
+  console.log('📍 CircuitDetail - ID recibido:', id);
+  console.log('📍 CircuitDetail - Circuits disponibles:', circuits?.map((c: any) => ({ id: c.id, title: c.title })));
+  
   const circuit = circuits.find((c: any) => c.id === id);
+  
+  console.log('📍 CircuitDetail - Circuito encontrado:', circuit?.title, circuit?.id);
 
   if (!circuit) return (
     <View className="flex-1 items-center justify-center">
@@ -34,6 +39,7 @@ const CircuitDetail: React.FC = () => {
   };
 
   const handleStartCircuit = async () => {
+    console.log('🚀 Iniciando circuito:', circuit.id);
     if (!isDownloaded) {
       setIsDownloading(true);
       await simulateDownload(circuit.id);
@@ -43,16 +49,19 @@ const CircuitDetail: React.FC = () => {
     if (circuit.pois && circuit.pois.length > 0) {
       navigate(`/poi/${circuit.pois[0].id}`);
     } else {
+      // Para React Navigation nativo
       navigate('/navigation', { state: { circuitId: circuit.id } });
     }
   };
 
   const handleOpenMap = () => {
+    console.log('🗺️ Abriendo mapa para circuito:', circuit.id);
+    // Para React Navigation nativo
     navigate('/navigation', { state: { circuitId: circuit.id } });
   }
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-zinc-950">
+    <View style={{ flex: 1, backgroundColor: settings.darkMode ? '#09090b' : '#f9fafb' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
         {/* Header Image */}
         <View className="relative h-72 bg-gray-200 dark:bg-gray-800">
@@ -61,13 +70,18 @@ const CircuitDetail: React.FC = () => {
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
+          {/* Degradado superior oscuro */}
           <LinearGradient
-            colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(255,255,255,0.1)', 'rgba(255,255,255,1)']}
-            locations={[0, 0.4, 0.8, 1]}
-            className="absolute inset-0"
+            colors={['rgba(0,0,0,0.7)', 'transparent']}
+            locations={[0, 0.3]}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%' }}
           />
-          {/* Dark mode gradient fix or conditional */}
-          <View className="absolute inset-0 bg-transparent dark:bg-black/20" />
+          {/* Degradado inferior oscuro con blur effect */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.75)']}
+            locations={[0, 0.5, 1]}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%' }}
+          />
 
           {/* Navigation Bar */}
           <View className="absolute top-12 left-0 right-0 px-4 flex-row justify-between items-center z-10">
@@ -83,31 +97,31 @@ const CircuitDetail: React.FC = () => {
           </View>
 
           <View className="absolute bottom-6 left-0 px-6 w-full">
-            <View className="bg-primary px-2 py-1 rounded self-start mb-2 shadow-sm">
+            <View className="bg-primary px-2 py-1 rounded self-start mb-2 shadow-lg" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.8, shadowRadius: 4 }}>
               <Text className="text-black text-xs font-bold uppercase">{circuit.difficulty}</Text>
             </View>
-            <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-1 shadow-black/50 drop-shadow-md">{circuit.title}</Text>
+            <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#ffffff', marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 }}>{circuit.title}</Text>
             <View className="flex-row items-center gap-4">
               <View className="flex-row items-center gap-1">
-                <MaterialIcons name="straighten" size={16} color="#e5e7eb" />
-                <Text className="text-sm text-gray-200 font-medium shadow-black/50">{circuit.distance} {t('circuit.distance')}</Text>
+                <MaterialIcons name="straighten" size={16} color="#ffffff" />
+                <Text style={{ fontSize: 14, color: '#ffffff', fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>{circuit.distance} {t('circuit.distance')}</Text>
               </View>
               <View className="flex-row items-center gap-1">
-                <MaterialIcons name="schedule" size={16} color="#e5e7eb" />
-                <Text className="text-sm text-gray-200 font-medium shadow-black/50">{circuit.duration} {t('circuit.duration')}</Text>
+                <MaterialIcons name="schedule" size={16} color="#ffffff" />
+                <Text style={{ fontSize: 14, color: '#ffffff', fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>{circuit.duration} {t('circuit.duration')}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        <View className="px-4 py-2 -mt-4 relative z-10 bg-gray-50 dark:bg-zinc-950 rounded-t-[20px]">
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8, marginTop: -16, position: 'relative', zIndex: 10, backgroundColor: settings.darkMode ? '#09090b' : '#f9fafb', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
           {/* Description */}
-          <Text className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6 text-sm pt-4">
+          <Text style={{ color: settings.darkMode ? '#d1d5db' : '#4b5563', lineHeight: 22, marginBottom: 24, fontSize: 14, paddingTop: 16 }}>
             {circuit.description}
           </Text>
 
           {/* Offline Status Card */}
-          <View className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 mb-8 flex-row items-center justify-between shadow-sm">
+          <View style={{ backgroundColor: settings.darkMode ? '#18181b' : '#ffffff', borderWidth: 1, borderColor: settings.darkMode ? '#27272a' : '#f3f4f6', borderRadius: 16, padding: 16, marginBottom: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}>
             <View className="flex-row items-center gap-3">
               <View className={`w-10 h-10 rounded-full items-center justify-center ${isDownloaded ? 'bg-green-100' : 'bg-gray-100'}`}>
                 {isDownloading ? (
@@ -117,7 +131,7 @@ const CircuitDetail: React.FC = () => {
                 )}
               </View>
               <View>
-                <Text className="text-sm font-bold text-gray-900 dark:text-white">
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }}>
                   {isDownloaded ? t('circuit.available_offline') : isDownloading ? t('circuit.downloading') : t('circuit.download')}
                 </Text>
                 <Text className="text-xs text-gray-500 font-bold">
@@ -136,7 +150,7 @@ const CircuitDetail: React.FC = () => {
           </View>
 
           {/* POI Timeline */}
-          <Text className="text-lg font-bold mb-4 px-2 dark:text-white">{t('circuit.pois')}</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, paddingHorizontal: 8, color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('circuit.pois')}</Text>
           <View className="pl-4">
             {/* Vertical Line */}
             <View className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gray-200 dark:bg-gray-700" />
@@ -163,7 +177,7 @@ const CircuitDetail: React.FC = () => {
                   </View>
 
                   {/* Content */}
-                  <View className="flex-1 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex-row gap-3">
+                  <View style={{ flex: 1, backgroundColor: settings.darkMode ? '#18181b' : '#ffffff', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: settings.darkMode ? '#27272a' : '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, flexDirection: 'row', gap: 12 }}>
                     <Image
                       source={{ uri: poi.image }}
                       style={{ width: 64, height: 64, borderRadius: 8 }}
@@ -171,7 +185,7 @@ const CircuitDetail: React.FC = () => {
                     />
                     <View className="flex-1">
                       <View className="flex-row justify-between items-start mb-0.5">
-                        <Text className="font-bold text-sm text-gray-900 dark:text-white flex-1 pr-2" numberOfLines={1}>{poi.title}</Text>
+                        <Text style={{ fontWeight: 'bold', fontSize: 14, color: settings.darkMode ? '#ffffff' : '#111827', flex: 1, paddingRight: 8 }} numberOfLines={1}>{poi.title}</Text>
                         <Text className="text-[10px] text-gray-400">{distDisplay}</Text>
                       </View>
                       <Text className="text-xs text-gray-500 mb-2" numberOfLines={1}>{poi.description}</Text>
@@ -190,23 +204,69 @@ const CircuitDetail: React.FC = () => {
               <Text className="pl-8 text-sm text-gray-500 italic">{t('circuit.offline_req')}</Text>
             )}
           </View>
+
+          {/* Mapa del recorrido */}
+          {circuit.pois && circuit.pois.length > 0 && (
+            <View className="mt-8 mb-4">
+              <Text className="text-lg font-bold mb-4 px-2 dark:text-white">{t('circuit.route_map')}</Text>
+              <View className="rounded-2xl overflow-hidden" style={{ height: 300 }}>
+                <MapView
+                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+                  style={{ flex: 1 }}
+                  initialRegion={{
+                    latitude: -25.10445,
+                    longitude: -65.53455,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                  }}
+                >
+                  {circuit.pois.map((poi: any, index: number) => {
+                    const lat = poi.lat || (-25.10445 + (index * 0.002));
+                    const lng = poi.lng || (-65.53455 + (index * 0.002));
+                    return (
+                      <Marker
+                        key={poi.id}
+                        coordinate={{ latitude: lat, longitude: lng }}
+                        title={poi.title}
+                        description={poi.description}
+                      >
+                        <View style={{ backgroundColor: '#10b981', width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'white' }}>
+                          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{index + 1}</Text>
+                        </View>
+                      </Marker>
+                    );
+                  })}
+                  
+                  {/* Línea de ruta */}
+                  <Polyline
+                    coordinates={circuit.pois.map((poi: any, index: number) => ({
+                      latitude: poi.lat || (-25.10445 + (index * 0.002)),
+                      longitude: poi.lng || (-65.53455 + (index * 0.002))
+                    }))}
+                    strokeColor="#10b981"
+                    strokeWidth={3}
+                  />
+                </MapView>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
 
       {/* Floating Action Bar */}
-      <View className="absolute bottom-0 left-0 w-full px-4 pt-4 pb-8 bg-gray-50 dark:bg-zinc-950 z-40 border-t border-gray-100 dark:border-gray-800">
+      <View style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 32, backgroundColor: settings.darkMode ? '#09090b' : '#f9fafb', zIndex: 40, borderTopWidth: 1, borderTopColor: settings.darkMode ? '#27272a' : '#f3f4f6' }}>
         <View className="flex-row gap-3">
           <TouchableOpacity
             onPress={handleOpenMap}
-            className="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700 py-4 rounded-2xl shadow-sm flex-row items-center justify-center gap-2"
+            style={{ flex: 1, backgroundColor: settings.darkMode ? '#18181b' : '#ffffff', borderWidth: 1, borderColor: settings.darkMode ? '#3f3f46' : '#e5e7eb', paddingVertical: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
-            <MaterialIcons name="map" size={20} color={colorScheme === 'dark' ? 'white' : 'black'} />
-            <Text className="font-bold text-gray-900 dark:text-white">{t('circuit.map')}</Text>
+            <MaterialIcons name="map" size={20} color={settings.darkMode ? 'white' : 'black'} />
+            <Text style={{ fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }}>{t('circuit.map')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleStartCircuit}
-            className="flex-[2] bg-black py-4 rounded-2xl shadow-lg flex-row items-center justify-center gap-2"
+            style={{ flex: 2, backgroundColor: '#000000', paddingVertical: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           >
             <MaterialIcons name="play-circle" size={20} color="white" />
             <Text className="font-bold text-white">{isDownloading ? t('circuit.downloading') : t('circuit.start_guided')}</Text>

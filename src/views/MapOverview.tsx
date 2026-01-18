@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigate } from '@/navigation/routerAdapter';
 import { useUser } from '@/contexts/UserContext';
@@ -134,6 +134,5 @@ const MapOverview: React.FC = () => {
     </View>
   );
 };
-import { ScrollView } from 'react-native';
 
 export default MapOverview;

@@ -9,7 +9,7 @@ import BottomNavNative from '@/components/BottomNavNative';
 const Downloads: React.FC = () => {
   const navigate = useNavigate();
   // @ts-ignore
-  const { downloadedCircuits, removeDownload, simulateDownload, t, circuits } = useUser();
+  const { downloadedCircuits, removeDownload, simulateDownload, t, circuits, settings } = useUser();
 
   const [loadingItems, setLoadingItems] = useState<string[]>([]);
   const [needsUpdate, setNeedsUpdate] = useState<string[]>(['ruta-tabaco']);
@@ -67,6 +67,11 @@ const Downloads: React.FC = () => {
   const downloadedItems = allItems.filter(item => downloadedCircuits.includes(item.id));
   const availableItems = allItems.filter(item => !downloadedCircuits.includes(item.id));
 
+  const bgColor = settings.darkMode ? '#09090b' : '#f9fafb';
+  const cardBgColor = settings.darkMode ? '#18181b' : '#ffffff';
+  const borderColor = settings.darkMode ? '#27272a' : '#f3f4f6';
+  const textColor = settings.darkMode ? '#ffffff' : '#111827';
+
   const handleDownload = async (id: string) => {
     setLoadingItems(prev => [...prev, id]);
     await simulateDownload(id);
@@ -116,24 +121,24 @@ const Downloads: React.FC = () => {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-zinc-950">
+    <View style={{ flex: 1, backgroundColor: bgColor }}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 60, paddingBottom: 100 }}>
         {/* Header */}
         <View className="flex-row items-center justify-between mb-8">
-          <TouchableOpacity onPress={() => navigate(-1)} className="w-10 h-10 rounded-full items-center justify-center bg-gray-100 dark:bg-gray-800">
+          <TouchableOpacity onPress={() => navigate(-1)} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: cardBgColor }}>
             <MaterialIcons name="arrow-back" size={24} color="gray" />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-gray-900 dark:text-white">{t('downloads.title')}</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor }}>{t('downloads.title')}</Text>
           <TouchableOpacity onPress={() => navigate('/settings')}>
             <Text className="text-sm font-bold text-gray-500">{t('nav.settings')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Storage Usage Card */}
-        <View className="mb-8 bg-white dark:bg-zinc-900 p-5 rounded-[1.5rem] shadow-sm border border-gray-100 dark:border-gray-800">
+        <View style={{ marginBottom: 32, backgroundColor: cardBgColor, padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, borderWidth: 1, borderColor: borderColor }}>
           <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">{t('downloads.storage')}</Text>
           <View className="flex-row justify-between items-baseline mb-2">
-            <Text className="text-2xl font-black text-gray-900 dark:text-white">
+            <Text style={{ fontSize: 24, fontWeight: '900', color: textColor }}>
               {(downloadedItems.length * 0.15 + 0.5).toFixed(1)} GB
             </Text>
             <Text className="text-xs font-bold text-primary-dark dark:text-primary">45 GB {t('downloads.free_space')}</Text>
@@ -150,7 +155,7 @@ const Downloads: React.FC = () => {
 
         {/* Downloaded Items */}
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-lg font-bold text-gray-900 dark:text-white">{t('downloads.downloaded')}</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor }}>{t('downloads.downloaded')}</Text>
           <View className="bg-[#e0fec0] px-2 py-0.5 rounded-md">
             <Text className="text-green-800 text-[10px] font-bold">{downloadedItems.length} items</Text>
           </View>
@@ -168,7 +173,7 @@ const Downloads: React.FC = () => {
               const updateAvailable = needsUpdate.includes(item.id);
 
               return (
-                <View key={item.id} className="bg-white dark:bg-zinc-900 p-3 rounded-[1.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
+                <View key={item.id} style={{ backgroundColor: cardBgColor, padding: 12, borderRadius: 24, borderWidth: 1, borderColor: borderColor, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}>
                   {item.type === 'circuit' && item.image ? (
                     <View className="relative h-32 w-full rounded-2xl overflow-hidden mb-3 bg-gray-100 dark:bg-gray-800">
                       <Image source={{ uri: item.image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
@@ -195,12 +200,12 @@ const Downloads: React.FC = () => {
 
                   <View className="px-1 pb-1">
                     <View className="flex-row justify-between items-start mb-1">
-                      <Text className="font-bold text-base text-gray-900 dark:text-white flex-1">{item.title}</Text>
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, color: textColor, flex: 1 }}>{item.title}</Text>
                       {!isUpdating && !updateAvailable && (
                         <MaterialIcons name="check-circle" size={18} color="#22c55e" />
                       )}
                     </View>
-                    <Text className="text-[11px] font-medium text-gray-400 mb-4">{item.size} • {item.description}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '500', color: '#9ca3af', marginBottom: 16 }}>{item.size} • {item.description}</Text>
 
                     <View className="flex-row gap-2">
                       {updateAvailable ? (
@@ -241,7 +246,7 @@ const Downloads: React.FC = () => {
         </View>
 
         {/* Available Section */}
-        <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('downloads.available')}</Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor, marginBottom: 16 }}>{t('downloads.available')}</Text>
         <View className="gap-3">
           {availableItems.length === 0 ? (
             <Text className="text-sm text-gray-400 text-center py-4">¡Todo está descargado! 🎉</Text>
@@ -249,7 +254,7 @@ const Downloads: React.FC = () => {
             availableItems.map(item => {
               const isLoading = loadingItems.includes(item.id);
               return (
-                <View key={item.id} className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex-row items-center justify-between shadow-sm">
+                <View key={item.id} style={{ backgroundColor: cardBgColor, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: borderColor, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}>
                   <View className="flex-row items-center gap-4 flex-1">
                     <View className="w-12 h-12 bg-[#f0f9ff] dark:bg-blue-900/20 rounded-xl items-center justify-center shrink-0">
                       {item.type === 'circuit' && item.image ? (
@@ -260,7 +265,7 @@ const Downloads: React.FC = () => {
                       )}
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-bold text-gray-900 dark:text-white" numberOfLines={1}>{item.title}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: textColor }} numberOfLines={1}>{item.title}</Text>
                       <Text className="text-[10px] font-bold text-gray-400 mt-0.5">{item.size} • {item.description}</Text>
                     </View>
                   </View>
@@ -268,7 +273,7 @@ const Downloads: React.FC = () => {
                   <TouchableOpacity
                     onPress={() => handleDownload(item.id)}
                     disabled={isLoading}
-                    className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 items-center justify-center"
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: settings.darkMode ? '#27272a' : '#f9fafb', borderWidth: 1, borderColor: settings.darkMode ? '#3f3f46' : '#f3f4f6', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {isLoading ? (
                       <ActivityIndicator size="small" color="#80EC13" />

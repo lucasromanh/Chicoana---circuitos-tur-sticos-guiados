@@ -11,7 +11,7 @@ export type RootStackParamList = {
     Home: undefined;
     CircuitDetail: { id: string };
     MapOverview: undefined;
-    ActiveNavigation: undefined;
+    ActiveNavigation: { circuitId?: string };
     PoiDetail: { id: string };
     Downloads: undefined;
     Settings: undefined;
@@ -50,6 +50,7 @@ export function useNavigate() {
 
         // Parsear la ruta
         const pathParts = path.split('/').filter(Boolean);
+        const stateParams = options?.state || {};
 
         if (pathParts.length === 0) {
             navigate('Splash');
@@ -60,7 +61,8 @@ export function useNavigate() {
         } else if (pathParts[0] === 'map') {
             navigate('MapOverview');
         } else if (pathParts[0] === 'navigation') {
-            navigate('ActiveNavigation');
+            // Pasar circuitId si viene en state
+            navigate('ActiveNavigation', { circuitId: stateParams.circuitId });
         } else if (pathParts[0] === 'poi' && pathParts[1]) {
             navigate('PoiDetail', { id: pathParts[1] });
         } else if (pathParts[0] === 'downloads') {

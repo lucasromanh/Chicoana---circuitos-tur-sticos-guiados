@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { CIRCUITS } from '@/constants';
 import { AppRoute, Circuit, LanguageCode } from '@/types';
@@ -92,20 +91,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadData();
   }, []);
 
-  // Efecto para aplicar Modo Oscuro (this might need native specific implementation if just DOM manipulation, but keeping logic for now)
-  // Converting class manipulation to non-DOM for React Native is usually handled by providers or conditional styles, 
-  // but let's keep the state logic consistent. The actual 'dark' class application doesn't work in RN same way.
-  // For RN, we typically don't manipulate 'document'.
-  // We'll leave the state update but remove the document manipulation which crashes RN.
-  // The actual theme should be handled by the UI components checking the settings or a ThemeProvider.
-  useEffect(() => {
-    // React Native doesn't have document.documentElement
-    // Logic for applying theme in RN usually goes through a context or NativeWind's useColorScheme
-    // Since we are likely using NativeWind (implied by className usage in previous files), 
-    // we might need to sync this setting with NativeWind.
-    // For now, removing the DOM manipulation to prevent crash.
-  }, [settings.darkMode]);
-
   const setUserName = async (name: string) => {
     setUserNameState(name);
     try {
@@ -127,30 +112,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const toggleFavorite = async (id: string) => {
-    try {
-      let newFavorites: string[] = [];
-      setFavorites(prev => {
-        if (prev.includes(id)) {
-          newFavorites = prev.filter(favId => favId !== id);
-        } else {
-          newFavorites = [...prev, id];
-        }
-        return newFavorites;
-      });
-      // We need to wait for the state calculation or just use the local var
-      // Using the local var 'newFavorites' which is captured correctly in the closure if we were careful, 
-      // but here we are inside setFavorites callback which is synchronous but returning the value.
-      // Better way: calculate new value first, then set state and storage.
-    } catch (e) { console.error(e); }
-
-    // Reworking to be safe with async/state
+    console.log('toggleFavorite llamado con id:', id);
     setFavorites(prev => {
+      console.log('Favoritos actuales:', prev);
       let next: string[];
       if (prev.includes(id)) {
         next = prev.filter(favId => favId !== id);
       } else {
         next = [...prev, id];
       }
+      console.log('Nuevos favoritos:', next);
       AsyncStorage.setItem('chicoana_user_favorites', JSON.stringify(next)).catch(console.error);
       return next;
     });

@@ -8,7 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import BottomNavNative from '@/components/BottomNavNative';
 
 // Modal Component helper
-const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
+const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode; settings: any }> = ({ isOpen, onClose, title, children, settings }) => {
    return (
       <RNModal
          visible={isOpen}
@@ -17,15 +17,15 @@ const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; chi
          onRequestClose={onClose}
          statusBarTranslucent
       >
-         <View className="flex-1 justify-end sm:justify-center bg-black/50" onStartShouldSetResponder={() => { onClose(); return true; }}>
+         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }} onStartShouldSetResponder={() => { onClose(); return true; }}>
             <View
-               className="bg-white dark:bg-zinc-900 w-full sm:w-[90%] sm:max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl max-h-[85%] overflow-hidden"
+               style={{ backgroundColor: settings.darkMode ? '#18181b' : '#ffffff', width: '100%', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.25, shadowRadius: 8, maxHeight: '85%', overflow: 'hidden' }}
                onStartShouldSetResponder={(e) => { e.stopPropagation(); return true; }}
             >
-               <View className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto mb-6 sm:hidden" />
+               <View style={{ width: 48, height: 6, backgroundColor: settings.darkMode ? '#3f3f46' : '#e5e7eb', borderRadius: 3, marginHorizontal: 'auto', marginBottom: 24 }} />
                <View className="flex-row justify-between items-center mb-4">
-                  <Text className="text-xl font-bold text-gray-900 dark:text-white">{title}</Text>
-                  <TouchableOpacity onPress={onClose} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }}>{title}</Text>
+                  <TouchableOpacity onPress={onClose} style={{ padding: 8, backgroundColor: settings.darkMode ? '#27272a' : '#f3f4f6', borderRadius: 20 }}>
                      <MaterialIcons name="close" size={20} color="gray" />
                   </TouchableOpacity>
                </View>
@@ -70,7 +70,7 @@ const Settings: React.FC = () => {
    const ToggleSwitch = ({ active, onChange }: { active: boolean, onChange: () => void }) => (
       <TouchableOpacity
          onPress={onChange}
-         className={`w-12 h-7 rounded-full justify-center ${active ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+         style={{ width: 48, height: 28, borderRadius: 14, justifyContent: 'center', backgroundColor: active ? '#10b981' : (settings.darkMode ? '#3f3f46' : '#e5e7eb') }}
       >
          <View className={`w-5 h-5 bg-white rounded-full shadow-md absolute ${active ? 'right-1' : 'left-1'}`} />
       </TouchableOpacity>
@@ -78,8 +78,8 @@ const Settings: React.FC = () => {
 
    return (
       <View className="flex-1">
-         <ScrollView className="flex-1 bg-gray-50 dark:bg-zinc-950" contentContainerStyle={{ paddingBottom: 100, paddingTop: 48, paddingHorizontal: 16 }}>
-            <Text className="text-2xl font-bold mb-6 dark:text-white">{t('settings.title')}</Text>
+         <ScrollView style={{ flex: 1, backgroundColor: settings.darkMode ? '#09090b' : '#f9fafb' }} contentContainerStyle={{ paddingBottom: 100, paddingTop: 48, paddingHorizontal: 16 }}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 24, color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.title')}</Text>
 
          <View className="gap-6">
 
@@ -89,11 +89,21 @@ const Settings: React.FC = () => {
                   {t('settings.profile')}
                   {!userName && <View className="w-2 h-2 rounded-full bg-primary" />}
                </Text>
-               <View className="bg-white dark:bg-zinc-900 rounded-[1.5rem] p-5 shadow-sm border border-gray-100 dark:border-gray-800">
+               <View style={{
+                  backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                  borderRadius: 24,
+                  padding: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  borderWidth: 1,
+                  borderColor: settings.darkMode ? '#27272a' : '#f3f4f6'
+               }}>
 
                   {/* Avatar Selection */}
                   <View className="flex-col items-center mb-6">
-                     <View className={`w-20 h-20 rounded-full ${currentAvatar.bg} items-center justify-center mb-4 shadow-sm border-4 border-white dark:border-gray-700`}>
+                     <View style={{ width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, borderWidth: 4, borderColor: settings.darkMode ? '#3f3f46' : '#ffffff' }} className={`${currentAvatar.bg}`}>
                         <Text className="text-4xl">{currentAvatar.icon}</Text>
                      </View>
                      <Text className="text-xs text-gray-400 mb-3 uppercase font-bold">{t('settings.choose_avatar')}</Text>
@@ -110,7 +120,7 @@ const Settings: React.FC = () => {
                      </View>
                   </View>
 
-                  <View className="w-full h-px bg-gray-100 dark:bg-gray-700 mb-6" />
+                  <View style={{ width: '100%', height: 1, backgroundColor: settings.darkMode ? '#3f3f46' : '#f3f4f6', marginBottom: 24 }} />
 
                   <View className="flex-row items-center gap-4 mb-2">
                      <View className="flex-1">
@@ -120,7 +130,17 @@ const Settings: React.FC = () => {
                            onChangeText={setUserName}
                            placeholder="Ej: Julián"
                            placeholderTextColor="#9ca3af"
-                           className="w-full bg-gray-50 dark:bg-gray-800 border-b-2 border-transparent focus:border-primary py-2 px-3 rounded-lg font-bold text-gray-900 dark:text-white"
+                           style={{ 
+                              width: '100%', 
+                              backgroundColor: settings.darkMode ? '#27272a' : '#f9fafb',
+                              borderBottomWidth: 2,
+                              borderBottomColor: 'transparent',
+                              paddingVertical: 8,
+                              paddingHorizontal: 12,
+                              borderRadius: 8,
+                              fontWeight: 'bold',
+                              color: settings.darkMode ? '#ffffff' : '#111827'
+                           }}
                         />
                      </View>
                   </View>
@@ -130,13 +150,13 @@ const Settings: React.FC = () => {
             {/* SECCIÓN DATOS OFFLINE */}
             <View>
                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">{t('settings.offline_data')}</Text>
-               <View className="bg-white dark:bg-zinc-900 rounded-[1.5rem] p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex-row items-center justify-between gap-4">
+               <View style={{ backgroundColor: settings.darkMode ? '#18181b' : '#ffffff', borderRadius: 24, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, borderWidth: 1, borderColor: settings.darkMode ? '#27272a' : '#f3f4f6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <View className="flex-row items-center gap-3 flex-1">
-                     <View className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center">
+                     <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: settings.darkMode ? 'rgba(59, 130, 246, 0.2)' : '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
                         <MaterialIcons name="wifi" size={20} color="#3b82f6" />
                      </View>
                      <View>
-                        <Text className="text-sm font-bold text-gray-900 dark:text-white" numberOfLines={1}>{t('settings.wifi_only')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }} numberOfLines={1}>{t('settings.wifi_only')}</Text>
                      </View>
                   </View>
                   <ToggleSwitch
@@ -149,17 +169,30 @@ const Settings: React.FC = () => {
             {/* Preferences Section */}
             <View>
                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">{t('settings.preferences')}</Text>
-               <View className="bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
+               <View style={{
+                  backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  borderWidth: 1,
+                  borderColor: settings.darkMode ? '#27272a' : '#f3f4f6'
+               }}>
 
                   {/* Dark Mode */}
-                  <View className="p-4 flex-row items-center justify-between border-b border-gray-50 dark:border-gray-700">
+                  <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: settings.darkMode ? '#3f3f46' : '#f9fafb' }}>
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="dark-mode" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.dark_mode')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.dark_mode')}</Text>
                      </View>
                      <ToggleSwitch
                         active={settings.darkMode}
-                        onChange={() => updateSetting('darkMode', !settings.darkMode)}
+                        onChange={() => {
+                           console.log('🌓 Cambiando darkMode de', settings.darkMode, 'a', !settings.darkMode);
+                           updateSetting('darkMode', !settings.darkMode);
+                        }}
                      />
                   </View>
 
@@ -170,7 +203,7 @@ const Settings: React.FC = () => {
                   >
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="translate" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.language')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.language')}</Text>
                      </View>
                      <View className="flex-row items-center gap-2">
                         <Text className="text-xl">{currentLang.flag}</Text>
@@ -184,13 +217,23 @@ const Settings: React.FC = () => {
             {/* Navigation Settings */}
             <View>
                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">{t('settings.nav_gps')}</Text>
-               <View className="bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
+               <View style={{
+                  backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  borderWidth: 1,
+                  borderColor: settings.darkMode ? '#27272a' : '#f3f4f6'
+               }}>
 
                   {/* Voice */}
-                  <View className="p-4 flex-row items-center justify-between border-b border-gray-50 dark:border-gray-700">
+                  <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: settings.darkMode ? '#3f3f46' : '#f9fafb' }}>
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="volume-up" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.voice')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.voice')}</Text>
                      </View>
                      <ToggleSwitch
                         active={settings.voiceInstructions}
@@ -202,7 +245,7 @@ const Settings: React.FC = () => {
                   <View className="p-4 flex-row items-center justify-between">
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="near-me" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.gps_accuracy')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.gps_accuracy')}</Text>
                      </View>
                      <ToggleSwitch
                         active={settings.backgroundGps}
@@ -215,16 +258,26 @@ const Settings: React.FC = () => {
             {/* Support */}
             <View>
                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">{t('settings.support')}</Text>
-               <View className="bg-white dark:bg-zinc-900 rounded-[1.5rem] overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
+               <View style={{
+                  backgroundColor: settings.darkMode ? '#18181b' : '#ffffff',
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  borderWidth: 1,
+                  borderColor: settings.darkMode ? '#27272a' : '#f3f4f6'
+               }}>
 
                   {/* Ayuda */}
                   <TouchableOpacity
                      onPress={() => setActiveModal('help')}
-                     className="w-full p-4 flex-row items-center justify-between border-b border-gray-50 dark:border-gray-700"
+                     style={{ width: '100%', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: settings.darkMode ? '#3f3f46' : '#f9fafb' }}
                   >
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="help" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.help')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.help')}</Text>
                      </View>
                      <MaterialIcons name="arrow-forward-ios" size={14} color="#9ca3af" />
                   </TouchableOpacity>
@@ -232,11 +285,11 @@ const Settings: React.FC = () => {
                   {/* Acerca de */}
                   <TouchableOpacity
                      onPress={() => setActiveModal('about')}
-                     className="w-full p-4 flex-row items-center justify-between border-b border-gray-50 dark:border-gray-700"
+                     style={{ width: '100%', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: settings.darkMode ? '#3f3f46' : '#f9fafb' }}
                   >
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="info" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.about')} Chicoana Turismo</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.about')} Chicoana Turismo</Text>
                      </View>
                      <MaterialIcons name="arrow-forward-ios" size={14} color="#9ca3af" />
                   </TouchableOpacity>
@@ -248,7 +301,7 @@ const Settings: React.FC = () => {
                   >
                      <View className="flex-row items-center gap-3">
                         <MaterialIcons name="gavel" size={20} color="gray" />
-                        <Text className="text-sm font-medium dark:text-white">{t('settings.terms')}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '500', color: settings.darkMode ? '#ffffff' : '#000000' }}>{t('settings.terms')}</Text>
                      </View>
                      <MaterialIcons name="arrow-forward-ios" size={14} color="#9ca3af" />
                   </TouchableOpacity>
@@ -263,7 +316,7 @@ const Settings: React.FC = () => {
          {/* --- MODALS --- */}
 
          {/* Language Modal */}
-         <Modal isOpen={activeModal === 'language'} onClose={() => setActiveModal(null)} title={t('settings.language')}>
+         <Modal isOpen={activeModal === 'language'} onClose={() => setActiveModal(null)} title={t('settings.language')} settings={settings}>
             <View className="gap-2">
                {LANGUAGES.map(lang => (
                   <TouchableOpacity
@@ -272,23 +325,23 @@ const Settings: React.FC = () => {
                         updateSetting('language', lang.code);
                         setActiveModal(null);
                      }}
-                     className={`flex-row items-center p-3 rounded-xl border ${settings.language === lang.code ? 'bg-primary/20 border-primary' : 'bg-gray-50 dark:bg-gray-800 border-transparent'}`}
+                     style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: settings.language === lang.code ? '#10b981' : 'transparent', backgroundColor: settings.language === lang.code ? 'rgba(16, 185, 129, 0.2)' : (settings.darkMode ? '#27272a' : '#f9fafb') }}
                   >
                      <Text className="text-2xl mr-3">{lang.flag}</Text>
-                     <Text className={`flex-1 text-left font-bold ${settings.language === lang.code ? 'text-primary-dark dark:text-primary' : 'text-gray-700 dark:text-gray-200'}`}>
+                     <Text style={{ flex: 1, textAlign: 'left', fontWeight: 'bold', color: settings.language === lang.code ? '#10b981' : (settings.darkMode ? '#e5e7eb' : '#374151') }}>
                         {lang.label}
                      </Text>
-                     {settings.language === lang.code && <MaterialIcons name="check-circle" size={20} color="black" />}
+                     {settings.language === lang.code && <MaterialIcons name="check-circle" size={20} color="#10b981" />}
                   </TouchableOpacity>
                ))}
             </View>
          </Modal>
 
          {/* Help Modal */}
-         <Modal isOpen={activeModal === 'help'} onClose={() => setActiveModal(null)} title={t('settings.help')}>
+         <Modal isOpen={activeModal === 'help'} onClose={() => setActiveModal(null)} title={t('settings.help')} settings={settings}>
             <View className="gap-4">
-               <Text className="dark:text-white">Si tienes emergencias o necesitas asistencia turística, comunícate con:</Text>
-               <View className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 gap-3">
+               <Text style={{ color: settings.darkMode ? '#ffffff' : '#111827' }}>Si tienes emergencias o necesitas asistencia turística, comunícate con:</Text>
+               <View style={{ backgroundColor: settings.darkMode ? '#27272a' : '#f9fafb', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: settings.darkMode ? '#3f3f46' : '#f3f4f6' }} className="gap-3">
                   <View className="flex-row items-center gap-3">
                      <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center">
                         <MaterialIcons name="call" size={18} color="#2563eb" />
@@ -296,7 +349,7 @@ const Settings: React.FC = () => {
                      <View>
                         <Text className="text-xs font-bold text-gray-500">Atención al Turista (Muni)</Text>
                         <TouchableOpacity onPress={() => Linking.openURL('tel:03874907000')}>
-                           <Text className="text-lg font-bold text-gray-900 dark:text-white">0387-490-7000</Text>
+                           <Text style={{ fontSize: 18, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }}>0387-490-7000</Text>
                         </TouchableOpacity>
                      </View>
                   </View>
@@ -307,7 +360,7 @@ const Settings: React.FC = () => {
                      <View>
                         <Text className="text-xs font-bold text-gray-500">Policía Chicoana</Text>
                         <TouchableOpacity onPress={() => Linking.openURL('tel:911')}>
-                           <Text className="text-lg font-bold text-gray-900 dark:text-white">911</Text>
+                           <Text style={{ fontSize: 18, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }}>911</Text>
                         </TouchableOpacity>
                      </View>
                   </View>
@@ -317,23 +370,23 @@ const Settings: React.FC = () => {
          </Modal>
 
          {/* About Modal */}
-         <Modal isOpen={activeModal === 'about'} onClose={() => setActiveModal(null)} title={t('settings.about')}>
+         <Modal isOpen={activeModal === 'about'} onClose={() => setActiveModal(null)} title={t('settings.about')} settings={settings}>
             <View className="items-center mb-6">
                <View className="w-20 h-20 bg-primary rounded-3xl items-center justify-center mb-4 shadow-sm rotate-3">
                   <MaterialIcons name="landscape" size={40} color="black" />
                </View>
-               <Text className="text-2xl font-black text-gray-900 dark:text-white">Chicoana Turismo</Text>
+               <Text style={{ fontSize: 24, fontWeight: '900', color: settings.darkMode ? '#ffffff' : '#111827' }}>Chicoana Turismo</Text>
                <Text className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Guía Oficial Offline</Text>
             </View>
 
-            <View className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 mb-4">
+            <View style={{ backgroundColor: settings.darkMode ? '#27272a' : '#f9fafb', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: settings.darkMode ? '#3f3f46' : '#f3f4f6', marginBottom: 16 }}>
                <Text className="text-xs font-bold text-gray-500 uppercase mb-2">Desarrollado por</Text>
                <View className="flex-row items-center gap-3">
-                  <View className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 items-center justify-center">
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: settings.darkMode ? '#3f3f46' : '#e5e7eb' }} className="items-center justify-center">
                      <MaterialIcons name="person" size={24} color="gray" />
                   </View>
                   <View>
-                     <Text className="text-base font-bold text-gray-900 dark:text-white">Lucas Roman</Text>
+                     <Text style={{ fontSize: 16, fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827' }}>Lucas Roman</Text>
                      <Text className="text-xs text-gray-500">Salta Capital, Argentina</Text>
                   </View>
                </View>
@@ -344,23 +397,23 @@ const Settings: React.FC = () => {
          </Modal>
 
          {/* Terms Modal */}
-         <Modal isOpen={activeModal === 'terms'} onClose={() => setActiveModal(null)} title={t('settings.terms')}>
+         <Modal isOpen={activeModal === 'terms'} onClose={() => setActiveModal(null)} title={t('settings.terms')} settings={settings}>
             <View className="gap-4">
                <View>
-                  <Text className="font-bold text-gray-900 dark:text-white mb-1">1. Uso de Datos</Text>
-                  <Text className="text-xs text-gray-600 dark:text-gray-400">
+                  <Text style={{ fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827', marginBottom: 4 }}>1. Uso de Datos</Text>
+                  <Text style={{ fontSize: 12, color: settings.darkMode ? '#9ca3af' : '#4b5563' }}>
                      Esta aplicación recopila datos de ubicación únicamente para proporcionar servicios de navegación y alertas de proximidad mientras usas la app. Ningún dato personal es compartido con terceros.
                   </Text>
                </View>
                <View>
-                  <Text className="font-bold text-gray-900 dark:text-white mb-1">2. Contenido Offline</Text>
-                  <Text className="text-xs text-gray-600 dark:text-gray-400">
+                  <Text style={{ fontWeight: 'bold', color: settings.darkMode ? '#ffffff' : '#111827', marginBottom: 4 }}>2. Contenido Offline</Text>
+                  <Text style={{ fontSize: 12, color: settings.darkMode ? '#9ca3af' : '#4b5563' }}>
                      Los mapas y guías descargados se almacenan localmente en tu dispositivo. Puedes eliminarlos en cualquier momento desde la sección "Gestión Offline".
                   </Text>
                </View>
             </View>
-            <TouchableOpacity onPress={() => setActiveModal(null)} className="w-full bg-black dark:bg-white py-3 rounded-xl mt-4 items-center">
-               <Text className="text-white dark:text-black font-bold">Entendido</Text>
+            <TouchableOpacity onPress={() => setActiveModal(null)} style={{ width: '100%', backgroundColor: settings.darkMode ? '#ffffff' : '#000000', paddingVertical: 12, borderRadius: 12, marginTop: 16, alignItems: 'center' }}>
+               <Text style={{ color: settings.darkMode ? '#000000' : '#ffffff', fontWeight: 'bold' }}>Entendido</Text>
             </TouchableOpacity>
          </Modal>
 

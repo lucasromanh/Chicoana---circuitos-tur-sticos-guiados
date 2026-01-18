@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'react-native';
-import { UserProvider } from '@/contexts/UserContext';
+import { View } from 'react-native';
+import { UserProvider, useUser } from '@/contexts/UserContext';
 import { navigationRef } from '@/navigation/routerAdapter';
 
 // Import views
@@ -21,13 +21,21 @@ import type { RootStackParamList } from '@/navigation/routerAdapter';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function AppNative() {
+function AppNavigator() {
+    const { settings } = useUser();
+
+    useEffect(() => {
+        console.log('🎨 AppNavigator: darkMode cambió a', settings.darkMode);
+    }, [settings.darkMode]);
+
+    console.log('🔄 AppNavigator renderizando con darkMode:', settings.darkMode);
+
     return (
-        <UserProvider>
+        <View className={settings.darkMode ? 'dark flex-1' : 'flex-1'}>
             <NavigationContainer ref={navigationRef}>
-                <StatusBar style="auto" />
-                <Stack.Navigator
-                    id="RootStack"
+                <StatusBar style={settings.darkMode ? 'light' : 'dark'} />
+            <Stack.Navigator
+                id="RootStack"
                     initialRouteName="Splash"
                     screenOptions={{
                         headerShown: false,
@@ -44,6 +52,14 @@ export default function AppNative() {
                     <Stack.Screen name="Settings" component={Settings} />
                 </Stack.Navigator>
             </NavigationContainer>
+        </View>
+    );
+}
+
+export default function AppNative() {
+    return (
+        <UserProvider>
+            <AppNavigator />
         </UserProvider>
     );
 }

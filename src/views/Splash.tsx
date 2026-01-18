@@ -52,29 +52,21 @@ const Splash: React.FC = () => {
   };
 
   return (
-    <View className="relative h-full w-full bg-gray-900">
+    <View style={{ position: 'relative', height: '100%', width: '100%', backgroundColor: '#1f2937' }}>
 
       {/* CAPA 1: FONDO (Absoluta, sin Flexbox interfiriendo) */}
-      <View className="absolute inset-0 z-0">
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}>
         <Image
-          source={{ uri: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=1080&auto=format&fit=crop" }}
-          className="w-full h-full opacity-100"
+          source={require('../../assets/icon.jpg')}
+          style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
-        />
-        {/* Gradiente superior suave para el logo */}
-        <LinearGradient
-          colors={['rgba(0,0,0,0.4)', 'transparent']}
-          className="absolute top-0 left-0 w-full h-1/2"
-        />
-        {/* Gradiente inferior fuerte para los controles */}
-        <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.8)', '#ffffff']}
-          className="absolute bottom-0 left-0 w-full h-2/3"
+          onLoad={() => console.log('✅ SPLASH: Imagen cargada!')}
+          onError={(e) => console.log('❌ SPLASH: Error:', e.nativeEvent.error)}
         />
       </View>
 
       {/* CAPA 2: CONTENIDO (Relativa, Z-Index positivo) */}
-      <View className="relative z-10 h-full flex flex-col justify-between pt-16 pb-12 px-6">
+      <View style={{ position: 'relative', zIndex: 10, height: '100%', flexDirection: 'column', justifyContent: 'space-between', paddingTop: 64, paddingBottom: 48, paddingHorizontal: 24, backgroundColor: 'rgba(0,0,0,0.5)' }}>
 
         {/* Header Logo */}
         <View className="flex flex-col items-center mt-8">
